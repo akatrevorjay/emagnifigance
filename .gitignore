@@ -1,0 +1,21 @@
+*.pyc
+*.pyo
+
+/env
+/var
+
+*.swp
+*.swo
+
+/.ropeproject/
+/.pydevproject
+/.project
+/.settings
+/*.komodoproject
+
+# TODO find which of these is the shared file, I forget at this point.
+/*.wpr
+/*.wpu
+
+.zfs
+tmp
