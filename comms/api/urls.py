@@ -4,7 +4,7 @@ from . import views
 
 
 urlpatterns = patterns(
-    'api.views',
+    'comms.api.views',
     url(r'^$', 'api_root'),
 
     url(r'^recipient_groups/$', views.RecipientGroupList.as_view(), name='recipient_group-list'),
