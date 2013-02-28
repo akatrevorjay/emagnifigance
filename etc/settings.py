@@ -5,7 +5,7 @@ from .paths import PROJECT_NAME, TOP_DIR, BASE_APP_DIR, DATA_DIR
 from django.conf import global_settings as gs
 
 # This needs raised later ;)
-CAMPAIGN_BLOCK_SIZE = 1
+CAMPAIGN_BLOCK_SIZE = 5  # 100
 
 #
 # Get server name
@@ -214,7 +214,7 @@ PROJECT_APPS = (
     'comms.campaign',
     'comms.emails',
     'comms.api',
-    'comms.twilio',
+    'comms.sms',
 )
 INSTALLED_APPS += PROJECT_APPS
 
@@ -405,6 +405,31 @@ TWILIO_ACCOUNT_SID = 'ACa7c819dd50324bbe628797e4012d36d8'
 TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 #TWILIO_DEFAULT_CALLERID = 'NNNNNNNNNN'
 
+##
+## mailchimp
+##
+#INSTALLED_APPS += ('mailchimp', )
+#MAILCHIMP_API_KEY = '94f585822250e021af9cd84605177da0-us6'
+#MAILCHIMP_WEBHOOK_KEY = 'demodemodemo'
+
+##
+## ActiveCampaign
+##
+#ACTIVECAMPAIGN_URL = 'https://trevorj.api-us1.com'
+#ACTIVECAMPAIGN_API_KEY = '45e8225da1d10674f292f260a8717deff3585619ced9ba47f277816a02d40a821e2daa51'
+
+## StreamSend
+##Login ID: revyGrXZXsnF
+##Key: WFnNE0U8e0t26k81
+
+##
+## iContact
+##
+#ICONTACT_APP_NAME = 'comms'
+#ICONTACT_USER_NAME = 'icontact@skywww.net'
+#ICONTACT_API_KEY = 'oppc6n3DSEUp4voxxNH2KBH72aEptEZt'
+#ICONTACT_API_PASS = 'u39GC4wTqEs6navVvcJTe2e7zG9dUZ'
+
 #
 # something
 #
@@ -426,6 +451,18 @@ CELERY_IMPORTS = (
     'celery.task.http',
 )
 
+CELERY_ROUTES = {
+    'comms.campaign.tasks.queue': {'queue': 'campaigns'},
+    'comms.campaign.tasks.send_email': {'queue': 'emails'},
+    'comms.campaign.tasks.send_sms': {'queue': 'emails'},
+}
+
+#CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}
+#CELERY_ANNOTATIONS = {"*": {"rate_limit": "10/s"}}
+
+CELERY_RESULT_BACKEND = "amqp"
+CELERY_TASK_RESULT_EXPIRES = 3600
+
 #
 # django-celery-email
 #
@@ -438,3 +475,5 @@ CELERY_EMAIL_TASK_CONFIG = {
     #'queue': 'email',
     'rate_limit': '50/m',
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

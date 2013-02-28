@@ -8,6 +8,7 @@ import logging
 #import json
 from datetime import timedelta
 from django.utils import timezone
+from itertools import izip
 
 from . import tasks
 
@@ -55,16 +56,24 @@ class Template(TimeStampedModel, ReprMixin):
 
 
 class Campaign(TimeStampedModel, ReprMixin):
-    BLOCK_SIZE = settings.CAMPAIGN_BLOCK_SIZE
-
     uuid = UUIDField()
     name = models.CharField(max_length=64, verbose_name='Name', unique=True)
     slug = AutoSlugField(populate_from='name')
     description = models.TextField(null=True)
     template = models.ForeignKey(Template)
+
     recipient_group = models.ForeignKey(RecipientGroup)
+    # TODO Not currently using this
     recipient_index = models.BigIntegerField(default=0)
+    # should proly be enum, or just sep out the classes (better idea)
+    recipient_type = models.CharField(max_length=16, default='email')
+
     started = models.BooleanField(default=False)
+    started_at = models.DateTimeField(null=True)
+    queued = models.BooleanField(default=False)
+    queued_at = models.DateTimeField(null=True)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True)
 
     @property
     def recipients(self):
@@ -94,35 +103,45 @@ class Campaign(TimeStampedModel, ReprMixin):
         total = self.total
         return cur / total * 100
 
-    @property
-    def is_queueing(self):
-        # TODO This works since it updates per block initiated to be sent, but
-        # can lie if anything else if updated... so I call this a HACK that
-        # needs a better solutions.
-        return timezone.now() - timedelta(minutes=5) < self.modified
-
-    @property
-    def is_running(self):
-        # TODO HACKery, this is not the same, need a way to determine this.
-        return self.is_queueing
-
     def start(self):
         """Starts queueing up campaign as a background task on a worker.
         Returns an AsyncResult that can be checked for return status."""
-        if not self.started:
-            return tasks.queue.delay(self)
+        if self.started:
+            raise Exception('Campaign has already been started')
+        self.mark_started()
+        return tasks.queue.delay(self)
 
-    def get_next_block(self):
-        cur = self.current
-        start = cur + 1
-        queryset = self.recipients.all()[start:start + self.BLOCK_SIZE]
-        ret = queryset.values('email', 'phone', 'context')
-        #ret['context'] = json.loads(ret['context'])
-        logging.debug('start=%s, ret=%s queryset=%s self=%s', start, ret, queryset, self)
-
-        self.recipient_index += len(ret)
+    def get_next_recipients(self, count=1):
+        for r in zip(*[iter(self.recipients.all()[self.current:])]*count):
+            yield r
+        self.recipient_index = self.total
         self.save()
-        return ret
+
+    states = ['started', 'queued', 'completed']
+
+    def _clear_state(self):
+        for state in self.states:
+            setattr(self, state, False)
+            setattr(self, '%s_at' % state, None)
+        self.recipient_index = 0
+        self.save()
+
+    def mark_state(self, state):
+        if getattr(self, state):
+            return
+        setattr(self, state, True)
+        setattr(self, '%s_at' % state, timezone.now())
+        self.save()
+
+    def mark_started(self):
+        return self.mark_state('started')
+
+    def mark_queued(self):
+        return self.mark_state('queued')
+
+    def mark_completed(self):
+        return self.mark_state('completed')
+
 
 from django.db.models.signals import post_save
 

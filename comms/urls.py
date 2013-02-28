@@ -17,11 +17,11 @@ urlpatterns = patterns('',
 
     # django-rest-framework
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^api/v1/', include('api.urls')),
+    url(r'^api/v1/', include('comms.api.urls')),
 
     # Emails
-    #url(r'^emails/', include('emails.urls')),
+    url(r'^emails/', include('emails.urls')),
 
     # SMS
-    #url(r'^sms/', include('sms.urls')),
+    url(r'^sms/', include('comms.sms.urls')),
 )

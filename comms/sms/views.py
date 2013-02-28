@@ -1,6 +1,7 @@
 from twilio.twiml import Response
 from django_twilio.decorators import twilio_view
 
+
 @twilio_view
 def reply_to_sms_messages(request):
     r = Response()
@@ -22,3 +23,10 @@ def reply_to_sms_messages(request):
     return HttpResponse(r.__repr__(), mimetype='application/xml')
 """
 
+
+from django.http import HttpResponse
+
+
+def process(request):
+    print request.GET   # Output GET data to terminal (for debug).
+    return HttpResponse()
