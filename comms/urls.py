@@ -20,7 +20,7 @@ urlpatterns = patterns('',
     url(r'^api/v1/', include('comms.api.urls')),
 
     # Emails
-    url(r'^emails/', include('emails.urls')),
+    url(r'^emails/', include('comms.emails.urls')),
 
     # SMS
     url(r'^sms/', include('comms.sms.urls')),

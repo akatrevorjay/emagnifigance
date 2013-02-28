@@ -1,7 +1,7 @@
 #from django.forms import widgets
 from rest_framework import serializers
 
-from campaign import models
+from comms.campaign import models
 
 
 class CampaignSerializer(serializers.HyperlinkedModelSerializer):
