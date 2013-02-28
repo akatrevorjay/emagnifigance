@@ -5,10 +5,9 @@ from django_extensions.db.fields.json import JSONField
 #from picklefield.fields import PickledObjectField
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db.models.signals import post_save
-from django.conf import settings
-import logging
-#import json
-from datetime import timedelta
+#from django.conf import settings
+#import logging
+#from datetime import timedelta
 from django.utils import timezone
 from itertools import izip
 
@@ -155,7 +154,7 @@ class Campaign(TimeStampedModel, ReprMixin):
         return tasks.queue.delay(self)
 
     def chunk_next_recipients(self, count=1):
-        for r in zip(*[iter(self.recipients.all()[self.current:])] * count):
+        for r in izip(*[iter(self.recipients.all()[self.current:])] * count):
             yield r
         self.recipient_index = self.total
         self.save()
