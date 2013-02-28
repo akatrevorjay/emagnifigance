@@ -38,6 +38,14 @@ class CampaignSerializer(serializers.HyperlinkedModelSerializer):
         depth = 1
 
 
+class EmailCampaignSerializer(CampaignSerializer):
+    pass
+
+
+class SmsCampaignSerializer(CampaignSerializer):
+    pass
+
+
 #class RecipientSerializer(serializers.HyperlinkedModelSerializer):
 #    class Meta:
 #        model = models.Recipient
@@ -58,6 +66,14 @@ class RecipientGroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('uuid', 'name', 'recipient_set')
 
 
+class EmailRecipientGroupSerializer(RecipientGroupSerializer):
+    pass
+
+
+class SmsRecipientGroupSerializer(RecipientGroupSerializer):
+    pass
+
+
 class TemplateSerializer(serializers.HyperlinkedModelSerializer):
     uuid = serializers.Field()
     slug = serializers.Field()
@@ -68,3 +84,11 @@ class TemplateSerializer(serializers.HyperlinkedModelSerializer):
         model = models.Template
         #fields = ('uuid', 'subject', 'template', 'context')
         exclude = ('id', )
+
+
+class EmailTemplateSerializer(TemplateSerializer):
+    pass
+
+
+class SmsTemplateSerializer(TemplateSerializer):
+    pass

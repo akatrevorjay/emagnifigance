@@ -18,24 +18,29 @@ def api_root(request, format=None):
     """The entry endpoint of our API.
     """
     return Response({
-        'campaigns': reverse('campaign-list', request=request),
-        'recipient_groups': reverse('recipient_group-list', request=request),
-        'templates': reverse('template-list', request=request),
+        'email-campaigns': reverse('email-campaign-list', request=request),
+        'sms-campaigns': reverse('sms-campaign-list', request=request),
+
+        'email-recipient_groups': reverse('email-recipient_group-list', request=request),
+        'sms-recipient_groups': reverse('sms-recipient_group-list', request=request),
+
+        'email-templates': reverse('email-template-list', request=request),
+        'sms-templates': reverse('sms-template-list', request=request),
     })
 
 
-class CampaignList(generics.ListCreateAPIView):
+class EmailCampaignList(generics.ListCreateAPIView):
     """API endpoint that represents a single campaign
     """
-    model = models.Campaign
-    serializer_class = serializers.CampaignSerializer
+    model = models.EmailCampaign
+    serializer_class = serializers.EmailCampaignSerializer
 
 
-class CampaignDetail(generics.RetrieveUpdateDestroyAPIView):
+class EmailCampaignDetail(generics.RetrieveUpdateDestroyAPIView):
     """API endpoint that represents a single group.
     """
-    model = models.Campaign
-    serializer_class = serializers.CampaignSerializer
+    model = models.EmailCampaign
+    serializer_class = serializers.EmailCampaignSerializer
 
 
 #class CampaignStart(generics.RetrieveAPIView):
@@ -45,29 +50,71 @@ class CampaignDetail(generics.RetrieveUpdateDestroyAPIView):
 #    serializer_class = serializers.CampaignSerializer
 
 
-class RecipientGroupList(generics.ListCreateAPIView):
+class EmailRecipientGroupList(generics.ListCreateAPIView):
     """API endpoint that represents a single campaign
     """
-    model = models.RecipientGroup
-    serializer_class = serializers.RecipientGroupSerializer
+    model = models.EmailRecipientGroup
+    serializer_class = serializers.EmailRecipientGroupSerializer
 
 
-class RecipientGroupDetail(generics.RetrieveUpdateDestroyAPIView):
+class EmailRecipientGroupDetail(generics.RetrieveUpdateDestroyAPIView):
     """API endpoint that represents a single group.
     """
-    model = models.RecipientGroup
-    serializer_class = serializers.RecipientGroupSerializer
+    model = models.EmailRecipientGroup
+    serializer_class = serializers.EmailRecipientGroupSerializer
 
 
-class TemplateList(generics.ListCreateAPIView):
+class EmailTemplateList(generics.ListCreateAPIView):
     """API endpoint that represents a single campaign
     """
-    model = models.Template
-    serializer_class = serializers.TemplateSerializer
+    model = models.EmailTemplate
+    serializer_class = serializers.EmailTemplateSerializer
 
 
-class TemplateDetail(generics.RetrieveUpdateDestroyAPIView):
+class EmailTemplateDetail(generics.RetrieveUpdateDestroyAPIView):
     """API endpoint that represents a single group.
     """
-    model = models.Template
-    serializer_class = serializers.TemplateSerializer
+    model = models.EmailTemplate
+    serializer_class = serializers.EmailTemplateSerializer
+
+
+class SmsCampaignList(generics.ListCreateAPIView):
+    """API endpoint that represents a single campaign
+    """
+    model = models.SmsCampaign
+    serializer_class = serializers.SmsCampaignSerializer
+
+
+class SmsCampaignDetail(generics.RetrieveUpdateDestroyAPIView):
+    """API endpoint that represents a single group.
+    """
+    model = models.SmsCampaign
+    serializer_class = serializers.SmsCampaignSerializer
+
+
+class SmsRecipientGroupList(generics.ListCreateAPIView):
+    """API endpoint that represents a single campaign
+    """
+    model = models.SmsRecipientGroup
+    serializer_class = serializers.SmsRecipientGroupSerializer
+
+
+class SmsRecipientGroupDetail(generics.RetrieveUpdateDestroyAPIView):
+    """API endpoint that represents a single group.
+    """
+    model = models.SmsRecipientGroup
+    serializer_class = serializers.SmsRecipientGroupSerializer
+
+
+class SmsTemplateList(generics.ListCreateAPIView):
+    """API endpoint that represents a single campaign
+    """
+    model = models.SmsTemplate
+    serializer_class = serializers.SmsTemplateSerializer
+
+
+class SmsTemplateDetail(generics.RetrieveUpdateDestroyAPIView):
+    """API endpoint that represents a single group.
+    """
+    model = models.SmsTemplate
+    serializer_class = serializers.SmsTemplateSerializer

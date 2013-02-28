@@ -7,19 +7,34 @@ urlpatterns = patterns(
     'comms.api.views',
     url(r'^$', 'api_root'),
 
-    url(r'^recipient_groups/$', views.RecipientGroupList.as_view(), name='recipient_group-list'),
-    url(r'^recipient_groups/(?P<pk>\d+)/$', views.RecipientGroupDetail.as_view(), name='recipient_group-detail'),
+    url(r'^email_recipient_groups/$', views.EmailRecipientGroupList.as_view(), name='email-recipient_group-list'),
+    url(r'^email_recipient_groups/(?P<pk>\d+)/$', views.EmailRecipientGroupDetail.as_view(), name='email-recipient_group-detail'),
 
-    #url(r'^recipients/$', views.RecipientGroup.as_view(), name='recipient-list'),
-    #url(r'^recipients/(?P<pk>\d+)/$', views.RecipientDetail.as_view(), name='recipient-detail'),
+    #url(r'^email_recipients/$', views.EmailRecipientGroup.as_view(), name='email-recipient-list'),
+    #url(r'^email_recipients/(?P<pk>\d+)/$', views.EmailRecipientDetail.as_view(), name='email-recipient-detail'),
 
-    url(r'^campaigns/$', views.CampaignList.as_view(), name='campaign-list'),
-    url(r'^campaigns/(?P<pk>\d+)/$', views.CampaignDetail.as_view(), name='campaign-detail'),
-    #url(r'^campaigns/(?P<pk>\d+)/start$', views.CampaignStart.as_view(), name='campaign-start'),
-    #url(r'^campaigns/(?P<pk>\d+)/pause$', views.CampaignPause.as_view(), name='campaign-pause'),
+    url(r'^email_campaigns/$', views.EmailCampaignList.as_view(), name='email-campaign-list'),
+    url(r'^email_campaigns/(?P<pk>\d+)/$', views.EmailCampaignDetail.as_view(), name='email-campaign-detail'),
+    #url(r'^email_campaigns/(?P<pk>\d+)/start$', views.EmailCampaignStart.as_view(), name='email-campaign-start'),
+    #url(r'^email_campaigns/(?P<pk>\d+)/pause$', views.EmailCampaignPause.as_view(), name='email-campaign-pause'),
 
-    url(r'^templates/$', views.TemplateList.as_view(), name='template-list'),
-    url(r'^templates/(?P<pk>\d+)/$', views.TemplateDetail.as_view(), name='template-detail'),
+    url(r'^email_templates/$', views.EmailTemplateList.as_view(), name='email-template-list'),
+    url(r'^email_templates/(?P<pk>\d+)/$', views.EmailTemplateDetail.as_view(), name='email-template-detail'),
+
+
+    url(r'^sms_recipient_groups/$', views.SmsRecipientGroupList.as_view(), name='sms-recipient_group-list'),
+    url(r'^sms_recipient_groups/(?P<pk>\d+)/$', views.SmsRecipientGroupDetail.as_view(), name='sms-recipient_group-detail'),
+
+    #url(r'^sms_recipients/$', views.SmsRecipientGroup.as_view(), name='sms-recipient-list'),
+    #url(r'^sms_recipients/(?P<pk>\d+)/$', views.SmsRecipientDetail.as_view(), name='sms-recipient-detail'),
+
+    url(r'^sms_campaigns/$', views.SmsCampaignList.as_view(), name='sms-campaign-list'),
+    url(r'^sms_campaigns/(?P<pk>\d+)/$', views.SmsCampaignDetail.as_view(), name='sms-campaign-detail'),
+    #url(r'^sms_campaigns/(?P<pk>\d+)/start$', views.SmsCampaignStart.as_view(), name='sms-campaign-start'),
+    #url(r'^sms_campaigns/(?P<pk>\d+)/pause$', views.SmsCampaignPause.as_view(), name='sms-campaign-pause'),
+
+    url(r'^sms_templates/$', views.SmsTemplateList.as_view(), name='sms-template-list'),
+    url(r'^sms_templates/(?P<pk>\d+)/$', views.SmsTemplateDetail.as_view(), name='sms-template-detail'),
 )
 
 # Format suffixes
