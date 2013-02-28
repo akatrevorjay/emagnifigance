@@ -17,5 +17,4 @@ def test_send():
 
 @task
 def send_email(recipient, body, subject, sender):
-    logger.info("Campaign '%s': Sending email %s", None, subject)
     return mail.send_mail(subject, body, sender, [recipient])

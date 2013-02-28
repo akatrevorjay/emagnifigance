@@ -453,8 +453,8 @@ CELERY_IMPORTS = (
 
 CELERY_ROUTES = {
     'comms.campaign.tasks.queue': {'queue': 'campaigns'},
-    'comms.campaign.tasks.send_email': {'queue': 'emails'},
-    'comms.campaign.tasks.send_sms': {'queue': 'emails'},
+    'comms.campaign.tasks.handle_email': {'queue': 'emails'},
+    'comms.campaign.tasks.handle_sms': {'queue': 'emails'},
 }
 
 #CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}

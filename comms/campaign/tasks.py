@@ -21,10 +21,10 @@ def queue(campaign):
     r_type = campaign.recipient_type
     if r_type == 'email':
         subject = Template(campaign.template.subject)
-        meth = send_email
+        meth = handle_email
     elif r_type == 'sms':
         subject = None
-        meth = send_sms
+        meth = handle_sms
     else:
         raise ValueError('Recipient type %s is invalid')
 
@@ -80,7 +80,7 @@ def handle_template(ctx, body=None, subject=None, context=None):
 
 
 @task(max_retries=3)
-def send_email(ctx, body=None, subject=None, sender=None, context=None):
+def handle_email(ctx, body=None, subject=None, sender=None, context=None):
     recipient = ctx['email']
     tmpl = handle_template(ctx, body=body, subject=subject, context=context)
     logger.info("Sending Email for '%s' => '%s' [%s]", sender, recipient, tmpl)
@@ -88,12 +88,12 @@ def send_email(ctx, body=None, subject=None, sender=None, context=None):
         comms.emails.tasks.send_email(recipient, tmpl['body'], tmpl['subject'], sender)
     except Exception, e:
         # Retry this from another node
-        raise send_email.retry(exc=e)
+        raise handle_email.retry(exc=e)
     return True
 
 
 @task(max_retries=3)
-def send_sms(ctx, body=None, subject=None, sender=None, context=None):
+def handle_sms(ctx, body=None, subject=None, sender=None, context=None):
     recipient = ctx['phone']
     tmpl = handle_template(ctx, body=body, context=context)
     logger.info("Sending SMS for '%s' => '%s' [%s]", sender, recipient, tmpl)
@@ -101,5 +101,5 @@ def send_sms(ctx, body=None, subject=None, sender=None, context=None):
         comms.sms.tasks.send_sms(recipient, tmpl['body'], sender)
     except Exception, e:
         # Retry this from another node
-        raise send_sms.retry(exc=e)
+        raise handle_sms.retry(exc=e)
     return True
