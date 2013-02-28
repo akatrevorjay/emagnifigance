@@ -3,6 +3,8 @@ from django_extensions.db.models import TimeStampedModel
 from django_extensions.db.fields import UUIDField, AutoSlugField
 from django_extensions.db.fields.json import JSONField
 #from picklefield.fields import PickledObjectField
+from phonenumber_field.modelfields import PhoneNumberField
+from django.db.models.signals import post_save
 from django.conf import settings
 import logging
 #import json
@@ -33,11 +35,26 @@ class RecipientGroup(TimeStampedModel, ReprMixin):
     description = models.TextField(null=True)
 
 
+class SmsRecipientGroup(RecipientGroup):
+    pass
+
+
+class EmailRecipientGroup(RecipientGroup):
+    pass
+
+
 class Recipient(TimeStampedModel, ReprMixin):
-    group = models.ForeignKey(RecipientGroup)
-    email = models.EmailField()
-    phone = models.IntegerField()
     context = JSONField()
+
+
+class SmsRecipient(Recipient):
+    group = models.ForeignKey(SmsRecipientGroup)
+    phone = PhoneNumberField()
+
+
+class EmailRecipient(Recipient):
+    group = models.ForeignKey(EmailRecipientGroup)
+    email = models.EmailField()
 
 
 class Template(TimeStampedModel, ReprMixin):
@@ -45,14 +62,20 @@ class Template(TimeStampedModel, ReprMixin):
     name = models.CharField(max_length=64, verbose_name='Name', unique=True)
     slug = AutoSlugField(populate_from='name')
     description = models.TextField(null=True)
-
-    sender = models.EmailField()
-    #recipients = PickledObjectField()
-    #recipient_group = models.ForeignKey(RecipientGroup)
-    subject = models.CharField(max_length=255)
-    #template = models.ForeignKey(Template)
     template = models.TextField(verbose_name='Template')
     context = JSONField()
+
+
+class SmsTemplate(Template):
+    sender = PhoneNumberField()
+
+
+class EmailTemplate(Template):
+    sender = models.EmailField()
+    subject = models.CharField(max_length=255)
+
+    #def get_message(self):
+    #    pass
 
 
 class Campaign(TimeStampedModel, ReprMixin):
@@ -60,20 +83,40 @@ class Campaign(TimeStampedModel, ReprMixin):
     name = models.CharField(max_length=64, verbose_name='Name', unique=True)
     slug = AutoSlugField(populate_from='name')
     description = models.TextField(null=True)
-    template = models.ForeignKey(Template)
 
-    recipient_group = models.ForeignKey(RecipientGroup)
-    # TODO Not currently using this
     recipient_index = models.BigIntegerField(default=0)
-    # should proly be enum, or just sep out the classes (better idea)
-    recipient_type = models.CharField(max_length=16, default='email')
 
-    started = models.BooleanField(default=False)
+    #status = JSONField()
+    states = ['started', 'queued', 'completed']
+    is_started = models.BooleanField(default=False)
     started_at = models.DateTimeField(null=True)
-    queued = models.BooleanField(default=False)
+    is_queued = models.BooleanField(default=False)
     queued_at = models.DateTimeField(null=True)
-    completed = models.BooleanField(default=False)
+    is_completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True)
+
+    def _clear_state(self):
+        for state in self.states:
+            setattr(self, 'is_%s' % state, False)
+            setattr(self, '%s_at' % state, None)
+        self.recipient_index = 0
+        self.save()
+
+    def mark_state(self, state):
+        if getattr(self, 'is_%s' % state):
+            return
+        setattr(self, 'is_%s' % state, True)
+        setattr(self, '%s_at' % state, timezone.now())
+        self.save()
+
+    def mark_started(self):
+        return self.mark_state('started')
+
+    def mark_queued(self):
+        return self.mark_state('queued')
+
+    def mark_completed(self):
+        return self.mark_state('completed')
 
     @property
     def recipients(self):
@@ -111,43 +154,30 @@ class Campaign(TimeStampedModel, ReprMixin):
         self.mark_started()
         return tasks.queue.delay(self)
 
-    def get_next_recipients(self, count=1):
-        for r in zip(*[iter(self.recipients.all()[self.current:])]*count):
+    def chunk_next_recipients(self, count=1):
+        for r in zip(*[iter(self.recipients.all()[self.current:])] * count):
             yield r
         self.recipient_index = self.total
         self.save()
 
-    states = ['started', 'queued', 'completed']
 
-    def _clear_state(self):
-        for state in self.states:
-            setattr(self, state, False)
-            setattr(self, '%s_at' % state, None)
-        self.recipient_index = 0
-        self.save()
-
-    def mark_state(self, state):
-        if getattr(self, state):
-            return
-        setattr(self, state, True)
-        setattr(self, '%s_at' % state, timezone.now())
-        self.save()
-
-    def mark_started(self):
-        return self.mark_state('started')
-
-    def mark_queued(self):
-        return self.mark_state('queued')
-
-    def mark_completed(self):
-        return self.mark_state('completed')
-
-
-from django.db.models.signals import post_save
-
-
-def start_campaign_on_save_created(sender, instance, created, **kwargs):
+def _start_campaign_on_save_created(sender, instance, created, **kwargs):
     if created:
         instance.start()
 
-post_save.connect(start_campaign_on_save_created, sender=Campaign)
+post_save.connect(_start_campaign_on_save_created, sender=Campaign)
+
+
+class SmsCampaign(Campaign):
+    template = models.ForeignKey(SmsTemplate)
+    recipient_group = models.ForeignKey(SmsRecipientGroup)
+
+
+post_save.connect(_start_campaign_on_save_created, sender=SmsCampaign)
+
+
+class EmailCampaign(Campaign):
+    template = models.ForeignKey(EmailTemplate)
+    recipient_group = models.ForeignKey(EmailRecipientGroup)
+
+post_save.connect(_start_campaign_on_save_created, sender=EmailCampaign)

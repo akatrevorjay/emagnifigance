@@ -30,7 +30,7 @@ def queue(campaign):
 
     body = Template(campaign.template.template)
 
-    for rset in campaign.get_next_recipients(count=settings.CAMPAIGN_BLOCK_SIZE):
+    for rset in campaign.chunk_next_recipients(count=settings.CAMPAIGN_BLOCK_SIZE):
         chord((meth.s(dict(email=r.email, phone=r.phone, context=r.context),
                       body=body,
                       subject=subject,
