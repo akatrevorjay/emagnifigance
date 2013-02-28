@@ -52,6 +52,10 @@ def check_send_retvals(rvs, rset, campaign):
         logger.error("Campaign '%s': Was not able to send message to '%s'", campaign, r)
         # TODO Put error in SQL, possibly email as bad depending on error
 
+    # TODO find a way to mark Campaign as completed after all
+    # check_send_retvals return
+    #campaign.mark_completed()
+
 
 def handle_template(ctx, body=None, subject=None, context=None):
     if context:
