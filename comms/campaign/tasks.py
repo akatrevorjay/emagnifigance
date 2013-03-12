@@ -18,24 +18,20 @@ def queue(campaign):
                 campaign.remaining,
                 campaign.total)
 
-    r_type = campaign.recipient_type
-    if r_type == 'email':
-        subject = Template(campaign.template.subject)
+    template_vars = campaign.template._get_template_vars()
+    _type = template_vars.pop('_type')
+    if _type == 'emails':
         meth = handle_email
-    elif r_type == 'sms':
-        subject = None
+    elif _type == 'sms':
         meth = handle_sms
     else:
-        raise ValueError('Recipient type %s is invalid')
-
-    body = Template(campaign.template.template)
+        raise ValueError("Unknown Campaign type '%s'" % _type)
 
     for rset in campaign.chunk_next_recipients(count=settings.CAMPAIGN_BLOCK_SIZE):
-        chord((meth.s(dict(email=r.email, phone=r.phone, context=r.context),
-                      body=body,
-                      subject=subject,
-                      sender=campaign.template.sender,
-                      context=campaign.template.context)
+        chord((meth.s(dict(email=r.email,
+                           phone=r.phone,
+                           context=r.context),
+                      **template_vars)
               for r in iter(rset)), check_send_retvals.s(rset, campaign))()
 
     campaign.mark_queued()

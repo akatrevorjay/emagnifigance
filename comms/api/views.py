@@ -18,14 +18,14 @@ def api_root(request, format=None):
     """The entry endpoint of our API.
     """
     return Response({
-        'email-campaigns': reverse('email-campaign-list', request=request),
-        'sms-campaigns': reverse('sms-campaign-list', request=request),
+        'email_campaigns': reverse('emailcampaign-list', request=request),
+        'sms_campaigns': reverse('smscampaign-list', request=request),
 
-        'email-recipient_groups': reverse('email-recipient_group-list', request=request),
-        'sms-recipient_groups': reverse('sms-recipient_group-list', request=request),
+        'email_recipient_groups': reverse('emailrecipientgroup-list', request=request),
+        'sms_recipient_groups': reverse('smsrecipientgroup-list', request=request),
 
-        'email-templates': reverse('email-template-list', request=request),
-        'sms-templates': reverse('sms-template-list', request=request),
+        'email_templates': reverse('emailtemplate-list', request=request),
+        'sms_templates': reverse('smstemplate-list', request=request),
     })
 
 

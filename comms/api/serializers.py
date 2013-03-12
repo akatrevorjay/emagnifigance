@@ -19,16 +19,16 @@ class CampaignSerializer(serializers.HyperlinkedModelSerializer):
     #    slug_field='name',
     #    queryset=models.RecipientGroup.objects.all(),
     #)
-    recipient_group = serializers.HyperlinkedRelatedField(view_name='recipient_group-detail',
-                                                          slug_field='name')
+    #recipient_group = serializers.HyperlinkedRelatedField(view_name='recipient_group-detail',
+    #                                                      slug_field='name')
     #recipient_group = RecipientGroupSerializer()
 
     #template = serializers.SlugRelatedField(
     #    slug_field='name',
     #    queryset=models.Template.objects.all(),
     #)
-    template = serializers.HyperlinkedRelatedField(view_name='template-detail',
-                                                   slug_field='name')
+    #template = serializers.HyperlinkedRelatedField(view_name='template-detail',
+    #                                               slug_field='name')
     #template = TemplateSerializer()
 
     class Meta:
@@ -39,11 +39,29 @@ class CampaignSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class EmailCampaignSerializer(CampaignSerializer):
-    pass
+    recipient_group = serializers.HyperlinkedRelatedField(view_name='emailrecipientgroup-detail',
+                                                          slug_field='name')
+    template = serializers.HyperlinkedRelatedField(view_name='emailtemplate-detail',
+                                                   slug_field='name')
+
+    class Meta:
+        model = models.EmailCampaign
+        ##fields = ('uuid', 'subject', 'template', 'recipient_group', 'sender', 'template', 'context')
+        #exclude = ('id', )
+        #depth = 1
 
 
 class SmsCampaignSerializer(CampaignSerializer):
-    pass
+    recipient_group = serializers.HyperlinkedRelatedField(view_name='smsrecipientgroup-detail',
+                                                          slug_field='name')
+    template = serializers.HyperlinkedRelatedField(view_name='smstemplate-detail',
+                                                   slug_field='name')
+
+    class Meta:
+        model = models.SmsCampaign
+        ##fields = ('uuid', 'subject', 'template', 'recipient_group', 'sender', 'template', 'context')
+        #exclude = ('id', )
+        #depth = 1
 
 
 #class RecipientSerializer(serializers.HyperlinkedModelSerializer):
@@ -67,11 +85,15 @@ class RecipientGroupSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class EmailRecipientGroupSerializer(RecipientGroupSerializer):
-    pass
+    class Meta:
+        model = models.EmailRecipientGroup
+        #fields = ('uuid', 'name', 'recipient_set')
 
 
 class SmsRecipientGroupSerializer(RecipientGroupSerializer):
-    pass
+    class Meta:
+        model = models.SmsRecipientGroup
+        #fields = ('uuid', 'name', 'recipient_set')
 
 
 class TemplateSerializer(serializers.HyperlinkedModelSerializer):
@@ -87,8 +109,16 @@ class TemplateSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class EmailTemplateSerializer(TemplateSerializer):
-    pass
+    class Meta:
+        model = models.EmailTemplate
+        ##fields = ('uuid', 'subject', 'template', 'context')
+        #exclude = ('id', )
 
 
 class SmsTemplateSerializer(TemplateSerializer):
-    pass
+    class Meta:
+        model = models.SmsTemplate
+        ##fields = ('uuid', 'subject', 'template', 'context')
+        #exclude = ('id', )
+
+

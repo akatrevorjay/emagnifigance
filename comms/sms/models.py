@@ -1,5 +1,7 @@
 from django.db import models
 from django.db.models.signals import post_save
+from phonenumber_field.modelfields import PhoneNumberField
+
 import comms.campaign.models as cmodels
 
 
@@ -9,22 +11,17 @@ class RecipientGroup(cmodels.RecipientGroup):
 
 class Recipient(cmodels.Recipient):
     group = models.ForeignKey(RecipientGroup)
-    email = models.EmailField()
+    phone = PhoneNumberField()
 
 
 class Template(cmodels.Template):
-    sender = models.EmailField()
-    subject = models.CharField(max_length=255)
-
-    #def get_message(self):
-    #    pass
+    sender = PhoneNumberField()
 
     def _get_template_vars(self):
         ret = super(Template, self)._get_template_vars()
         ret.update(dict(
-            subject=Template(self.subject),
             sender=self.sender,
-            _type='emails',
+            _type='sms',
         ))
         return ret
 

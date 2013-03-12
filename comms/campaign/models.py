@@ -3,8 +3,6 @@ from django_extensions.db.models import TimeStampedModel
 from django_extensions.db.fields import UUIDField, AutoSlugField
 from django_extensions.db.fields.json import JSONField
 #from picklefield.fields import PickledObjectField
-from phonenumber_field.modelfields import PhoneNumberField
-from django.db.models.signals import post_save
 #from django.conf import settings
 #import logging
 #from datetime import timedelta
@@ -28,35 +26,26 @@ class ReprMixin(object):
 
 
 class RecipientGroup(TimeStampedModel, ReprMixin):
+    class Meta:
+        abstract = True
+
     uuid = UUIDField()
     name = models.CharField(max_length=64, verbose_name='Name', unique=True)
     slug = AutoSlugField(populate_from='name')
     description = models.TextField(null=True)
 
 
-class SmsRecipientGroup(RecipientGroup):
-    pass
-
-
-class EmailRecipientGroup(RecipientGroup):
-    pass
-
-
 class Recipient(TimeStampedModel, ReprMixin):
+    class Meta:
+        abstract = True
+
     context = JSONField()
 
 
-class SmsRecipient(Recipient):
-    group = models.ForeignKey(SmsRecipientGroup)
-    phone = PhoneNumberField()
-
-
-class EmailRecipient(Recipient):
-    group = models.ForeignKey(EmailRecipientGroup)
-    email = models.EmailField()
-
-
 class Template(TimeStampedModel, ReprMixin):
+    class Meta:
+        abstract = True
+
     uuid = UUIDField()
     name = models.CharField(max_length=64, verbose_name='Name', unique=True)
     slug = AutoSlugField(populate_from='name')
@@ -64,20 +53,19 @@ class Template(TimeStampedModel, ReprMixin):
     template = models.TextField(verbose_name='Template')
     context = JSONField()
 
-
-class SmsTemplate(Template):
-    sender = PhoneNumberField()
-
-
-class EmailTemplate(Template):
-    sender = models.EmailField()
-    subject = models.CharField(max_length=255)
-
-    #def get_message(self):
-    #    pass
+    def _get_template_vars(self):
+        ret = dict(
+            body=Template(self.template),
+            sender=self.sender,
+            context=self.context,
+        )
+        return ret
 
 
 class Campaign(TimeStampedModel, ReprMixin):
+    class Meta:
+        abstract = True
+
     uuid = UUIDField()
     name = models.CharField(max_length=64, verbose_name='Name', unique=True)
     slug = AutoSlugField(populate_from='name')
@@ -143,12 +131,14 @@ class Campaign(TimeStampedModel, ReprMixin):
     def percentage_complete(self):
         cur = self.current
         total = self.total
+        if (cur, total) == (0, 0):
+            return 0
         return cur / total * 100
 
     def start(self):
         """Starts queueing up campaign as a background task on a worker.
         Returns an AsyncResult that can be checked for return status."""
-        if self.started:
+        if self.is_started:
             raise Exception('Campaign has already been started')
         self.mark_started()
         return tasks.queue.delay(self)
@@ -159,24 +149,8 @@ class Campaign(TimeStampedModel, ReprMixin):
         self.recipient_index = self.total
         self.save()
 
-
-def _start_campaign_on_save_created(sender, instance, created, **kwargs):
-    if created:
-        instance.start()
-
-post_save.connect(_start_campaign_on_save_created, sender=Campaign)
-
-
-class SmsCampaign(Campaign):
-    template = models.ForeignKey(SmsTemplate)
-    recipient_group = models.ForeignKey(SmsRecipientGroup)
-
-
-post_save.connect(_start_campaign_on_save_created, sender=SmsCampaign)
-
-
-class EmailCampaign(Campaign):
-    template = models.ForeignKey(EmailTemplate)
-    recipient_group = models.ForeignKey(EmailRecipientGroup)
-
-post_save.connect(_start_campaign_on_save_created, sender=EmailCampaign)
+    @classmethod
+    def _start_campaign_on_save_created(cls, sender, instance, created, **kwargs):
+        #if created:
+        if not instance.is_started:
+            instance.start()

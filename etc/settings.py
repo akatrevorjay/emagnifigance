@@ -466,8 +466,8 @@ CELERY_TASK_RESULT_EXPIRES = 3600
 #
 # django-celery-email
 #
-INSTALLED_APPS += ('djcelery_email', )
-EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
+#INSTALLED_APPS += ('djcelery_email', )
+#EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
 
 CELERY_EMAIL_TASK_CONFIG = {
     #'name': 'djcelery_email_send',
