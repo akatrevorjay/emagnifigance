@@ -222,12 +222,12 @@ INSTALLED_APPS += PROJECT_APPS
 # MongoDB (MongoEngine)
 #
 
-#MONGODB_DATABASES = {
-#    'default': {'name': PROJECT_NAME}
-#}
+MONGODB_DATABASES = {
+    'default': {'name': PROJECT_NAME}
+}
 
-#import mongoengine
-#mongoengine.connect(PROJECT_NAME)
+import mongoengine
+mongoengine.connect(PROJECT_NAME)
 
 ##DJANGO_MONGOENGINE_OVERRIDE_ADMIN = True
 
@@ -240,7 +240,7 @@ INSTALLED_APPS += PROJECT_APPS
 #) + gs.AUTHENTICATION_BACKENDS
 
 ## Session Engine
-#SESSION_ENGINE = 'mongoengine.django.sessions'
+SESSION_ENGINE = 'mongoengine.django.sessions'
 
 #
 # Sessions
@@ -284,7 +284,7 @@ INSTALLED_APPS += ("south", )
 #
 INSTALLED_APPS += (
     'debug_toolbar',
-    #'debug_toolbar_mongo',
+    'debug_toolbar_mongo',
     #'debug_toolbar_autoreload',
 )
 
@@ -306,7 +306,7 @@ DEBUG_TOOLBAR_PANELS = (
     'debug_toolbar.panels.signals.SignalDebugPanel',
     'debug_toolbar.panels.logger.LoggingPanel',
     # 3rd
-    #'debug_toolbar_mongo.panel.MongoDebugPanel',
+    'debug_toolbar_mongo.panel.MongoDebugPanel',
     #'debug_toolbar_autoreload.AutoreloadPanel',
 )
 
