@@ -1,0 +1,3 @@
+#!/bin/bash -e
+EMAG_DIR=/opt/emag
+exec $EMAG_DIR/bin/env $EMAG_DIR/bin/reloader.py -p $EMAG_DIR/emag -i '*.sw*' '*.pyc' -s 10 "$@"
