@@ -6,8 +6,6 @@ from django.template import Context
 from django.conf import settings
 import emag.emails.tasks
 import emag.sms.tasks
-#from emag.emails.models import EmailCampaign
-#from emag.sms.models import SmsCampaign
 
 
 @task
