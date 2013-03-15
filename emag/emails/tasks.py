@@ -6,6 +6,7 @@ logger = get_task_logger(__name__)
 from django.core import mail
 
 
+"""
 @task
 def test_mass_send():
     emails = (
@@ -13,6 +14,7 @@ def test_mass_send():
         ('Dammit Walter', "Let's go bowlin'.", 'dude@aol.com', ['wsobchak@vfw.org']),
     )
     return mail.send_mass_mail(emails)
+"""
 
 
 @task
