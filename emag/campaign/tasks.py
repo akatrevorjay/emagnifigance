@@ -2,16 +2,16 @@ from celery import task, chord
 #from celery import group, subtask, group, chain
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
-from django.template import Template, Context
+from django.template import Context
 from django.conf import settings
-import comms.emails.tasks
-import comms.sms.tasks
+import emag.emails.tasks
+import emag.sms.tasks
+#from emag.emails.models import EmailCampaign
+#from emag.sms.models import SmsCampaign
 
 
 @task
 def queue(campaign):
-    #recipients = campaign.recipient_group.recipient_set.values('email')
-    #block_count = remaining / campaign.BLOCK_SIZE
     logger.info("Queueing Campaign: %s, percentage=%s (%s/%s)",
                 campaign,
                 campaign.percentage_complete,
@@ -20,7 +20,7 @@ def queue(campaign):
 
     template_vars = campaign.template._get_template_vars()
     _type = template_vars.pop('_type')
-    if _type == 'emails':
+    if _type == 'email':
         meth = handle_email
     elif _type == 'sms':
         meth = handle_sms
@@ -28,11 +28,9 @@ def queue(campaign):
         raise ValueError("Unknown Campaign type '%s'" % _type)
 
     for rset in campaign.chunk_next_recipients(count=settings.CAMPAIGN_BLOCK_SIZE):
-        chord((meth.s(dict(email=r.email,
-                           phone=r.phone,
-                           context=r.context),
-                      **template_vars)
-              for r in iter(rset)), check_send_retvals.s(rset, campaign))()
+        chord((meth.s(r._get_template_vars(), **template_vars)
+              for r in iter(rset)),
+              check_send_retvals.s(rset, campaign))()
 
     campaign.mark_queued()
     logger.info("Completed queueing Campaign '%s'", campaign)
@@ -41,9 +39,13 @@ def queue(campaign):
 
 @task
 def check_send_retvals(rvs, rset, campaign):
-    ret = dict(zip(rset, rvs))
-    for r, rv in ret.iteritems():
+    logger.debug('rset=%s rvs=%s', rset, rvs)
+    for x, r in enumerate(rset):
+        rv = rvs[x]
+        logger.debug('x=%s r=%s rv=%s', x, r, rv)
+
         if rv:
+            logger.info("Campaign '%s': Was able to send message to '%s'", campaign, r)
             continue
         logger.error("Campaign '%s': Was not able to send message to '%s'", campaign, r)
         # TODO Put error in SQL, possibly email as bad depending on error
@@ -81,7 +83,7 @@ def handle_email(ctx, body=None, subject=None, sender=None, context=None):
     tmpl = handle_template(ctx, body=body, subject=subject, context=context)
     logger.info("Sending Email for '%s' => '%s' [%s]", sender, recipient, tmpl)
     try:
-        comms.emails.tasks.send_email(recipient, tmpl['body'], tmpl['subject'], sender)
+        emag.emails.tasks.send_email(recipient, tmpl['body'], tmpl['subject'], sender)
     except Exception, e:
         # Retry this from another node
         raise handle_email.retry(exc=e)
@@ -94,7 +96,7 @@ def handle_sms(ctx, body=None, subject=None, sender=None, context=None):
     tmpl = handle_template(ctx, body=body, context=context)
     logger.info("Sending SMS for '%s' => '%s' [%s]", sender, recipient, tmpl)
     try:
-        comms.sms.tasks.send_sms(recipient, tmpl['body'], sender)
+        emag.sms.tasks.send_sms(recipient, tmpl['body'], sender)
     except Exception, e:
         # Retry this from another node
         raise handle_sms.retry(exc=e)

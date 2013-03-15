@@ -1,11 +1,12 @@
-# Django settings for comms project.
+# Django settings for emag project.
 
 import os
 from .paths import PROJECT_NAME, TOP_DIR, BASE_APP_DIR, DATA_DIR
 from django.conf import global_settings as gs
 
 # This needs raised later ;)
-CAMPAIGN_BLOCK_SIZE = 5  # 100
+#CAMPAIGN_BLOCK_SIZE = 100
+CAMPAIGN_BLOCK_SIZE = 1
 
 #
 # Get server name
@@ -211,10 +212,10 @@ PROJECT_APPS = (
     #'api',
     #'emails',
     #'sms',
-    'comms.campaign',
-    'comms.emails',
-    'comms.api',
-    'comms.sms',
+    'emag.campaign',
+    'emag.emails',
+    'emag.api',
+    'emag.sms',
 )
 INSTALLED_APPS += PROJECT_APPS
 
@@ -425,7 +426,7 @@ TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 ##
 ## iContact
 ##
-#ICONTACT_APP_NAME = 'comms'
+#ICONTACT_APP_NAME = 'emag'
 #ICONTACT_USER_NAME = 'icontact@skywww.net'
 #ICONTACT_API_KEY = 'oppc6n3DSEUp4voxxNH2KBH72aEptEZt'
 #ICONTACT_API_PASS = 'u39GC4wTqEs6navVvcJTe2e7zG9dUZ'
@@ -452,9 +453,9 @@ CELERY_IMPORTS = (
 )
 
 CELERY_ROUTES = {
-    'comms.campaign.tasks.queue': {'queue': 'campaigns'},
-    'comms.campaign.tasks.handle_email': {'queue': 'emails'},
-    'comms.campaign.tasks.handle_sms': {'queue': 'emails'},
+    'emag.campaign.tasks.queue': {'queue': 'campaigns'},
+    'emag.campaign.tasks.handle_email': {'queue': 'emails'},
+    'emag.campaign.tasks.handle_sms': {'queue': 'sms'},
 }
 
 #CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}

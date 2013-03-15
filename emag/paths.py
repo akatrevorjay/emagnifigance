@@ -10,7 +10,7 @@ def _find_project(try_dir=None, max_depth=5):
         return os.path.abspath(try_dir)
     return _find_project(os.path.join(try_dir, os.path.pardir), max_depth=max_depth - 1)
 
-PROJECT_NAME = 'comms'
+PROJECT_NAME = 'emag'
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', '%s.settings' % PROJECT_NAME)
 
 TOP_DIR = _find_project(os.path.dirname(os.path.realpath(__file__)))
