@@ -7,7 +7,7 @@ from django.core import mail
 
 
 @task
-def test_send():
+def test_mass_send():
     emails = (
         ('Hey Man', "I'm The Dude! So that's what you call me.", 'dude@aol.com', ['mr@lebowski.com']),
         ('Dammit Walter', "Let's go bowlin'.", 'dude@aol.com', ['wsobchak@vfw.org']),
