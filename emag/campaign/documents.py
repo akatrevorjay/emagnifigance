@@ -4,6 +4,7 @@ from emag.models import CreatedModifiedDocMixIn, ReprMixIn
 #import logging
 #from datetime import timedelta
 from django.template import Template
+from django.template.defaultfilters import slugify
 from django.utils import timezone
 from itertools import izip
 import logging
@@ -43,7 +44,21 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
 
     uuid = m.UUIDField(binary=False)
     name = m.StringField(regex=r'^[-\w _]+', max_length=64, unique=True, required=True)
+
     description = m.StringField()
+
+    """
+    Slug
+    """
+
+    slug = m.StringField()
+
+    def save(self, *args, **kwargs):
+        # Automagic slug generation
+        if not self.slug:
+            self.slug = slugify(self.name)
+
+        return super(BaseCampaign, self).save(*args, **kwargs)
 
     """
     State

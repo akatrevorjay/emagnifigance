@@ -1,6 +1,6 @@
 import mongoengine as m
 from mongoengine.signals import post_save
-import emag.campaign.models as cmodels
+import emag.campaign.documents as cmodels
 from django.template import Template
 #import logging
 

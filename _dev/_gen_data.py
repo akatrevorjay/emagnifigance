@@ -1,9 +1,9 @@
 #!/usr/bin/env python2.7
 
-import emag.emails.models as em
-from emag.emails.models import EmailRecipient, EmailTemplate, EmailCampaign
-import emag.sms.models as sm
-from emag.sms.models import SmsRecipient, SmsTemplate, SmsCampaign
+import emag.emails.documents as em
+from emag.emails.documents import EmailRecipient, EmailTemplate, EmailCampaign
+import emag.sms.documents as sm
+from emag.sms.documents import SmsRecipient, SmsTemplate, SmsCampaign
 
 TEST_NAME = 'Test %s Campaign'
 TEST_DESC = 'Testing of %s Campaign'
