@@ -4,7 +4,8 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 admin.autodiscover()
 
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     # Examples:
     # url(r'^$', 'emag.views.home', name='home'),
     # url(r'^emag/', include('emag.foo.urls')),
@@ -23,5 +24,5 @@ urlpatterns = patterns('',
     url(r'^emails/', include('emag.emails.urls')),
 
     # SMS
-    url(r'^sms/', include('emag.sms.urls')),
+    #url(r'^sms/', include('emag.sms.urls')),
 )

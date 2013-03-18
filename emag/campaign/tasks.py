@@ -43,7 +43,7 @@ def check_send_retvals(rvs, rset, campaign):
         logger.debug('x=%s r=%s rv=%s', x, r, rv)
 
         if rv:
-            logger.info("Campaign '%s': Was able to send message to '%s'", campaign, r)
+            logger.debug("Campaign '%s': Was able to send message to '%s'", campaign, r)
             continue
         logger.error("Campaign '%s': Was not able to send message to '%s'", campaign, r)
         # TODO Put error in SQL, possibly email as bad depending on error

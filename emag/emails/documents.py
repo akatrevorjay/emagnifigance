@@ -6,6 +6,8 @@ from django.template import Template
 
 
 class EmailRecipient(cmodels.BaseRecipient):
+    _repr_vars = ['email']
+
     email = m.EmailField()
 
     def _get_template_vars(self):
@@ -17,6 +19,8 @@ class EmailRecipient(cmodels.BaseRecipient):
 
 
 class EmailTemplate(cmodels.BaseTemplate):
+    _repr_vars = ['subject']
+
     sender = m.EmailField()
     subject = m.StringField(max_length=255)
 
