@@ -22,7 +22,6 @@ class SmsTemplate(cmodels.BaseTemplate):
         ret = super(SmsTemplate, self)._get_template_vars()
         ret.update(dict(
             sender=self.sender,
-            _type='sms',
         ))
         return ret
 
@@ -30,6 +29,7 @@ class SmsTemplate(cmodels.BaseTemplate):
 class SmsCampaign(cmodels.BaseCampaign):
     template = m.EmbeddedDocumentField(SmsTemplate)
     recipients = m.ListField(m.EmbeddedDocumentField(SmsRecipient))
+    _campaign_type = 'sms'
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):

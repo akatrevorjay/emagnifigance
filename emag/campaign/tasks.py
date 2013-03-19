@@ -1,11 +1,37 @@
-from celery import task, chord
+from celery import task, chord, group, chunks
 #from celery import group, subtask, group, chain
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from django.template import Context
 from django.conf import settings
+from django.utils import timezone
 import emag.emails.tasks
 import emag.sms.tasks
+
+
+import celery
+from celery.result import AsyncResult
+
+
+@task
+def add2(*args):
+    ret = 0
+    for arg in args:
+        ret += arg
+    return ret
+
+
+@task
+def add(x, y):
+    return x + y
+
+
+@celery.task
+def error_handler(uuid):
+    result = AsyncResult(uuid)
+    exc = result.get(propagate=False)
+    print('Task %r raised exception: %r\n%r' % (
+          exc, result.traceback))
 
 
 @task
@@ -16,41 +42,71 @@ def queue(campaign):
                 campaign.remaining,
                 campaign.total)
 
-    template_vars = campaign.template._get_template_vars()
-    _type = template_vars.pop('_type')
-    if _type == 'email':
-        meth = handle_email
-    elif _type == 'sms':
-        meth = handle_sms
-    else:
-        raise ValueError("Unknown Campaign type '%s'" % _type)
+    # TODO Group by destination domain?
 
-    for rset in campaign.chunk_next_recipients(count=settings.CAMPAIGN_BLOCK_SIZE):
-        chord((meth.s(r._get_template_vars(), **template_vars)
-              for r in iter(rset)),
-              check_send_retvals.s(rset, campaign))()
+    #t_vars = campaign.template._get_template_vars()
+
+    # I don't know how well this will scale, need to find out. May need to
+    # split up into smaller tasks that grab a chunk.
+    #(group(campaign._handler.s(r_vars, **t_vars) for r_vars in campaign.get_template_vars()) | check_send_retvals.s(campaign))()
+
+    #partial = campaign._handler.s(**t_vars)
+    #partial = test_task.s(**t_vars)
+
+    #(chunks(partial, tuple(campaign.get_template_vars()), 10) | check_send_retvals.s(campaign))()
+    #(chunks(partial, tuple(campaign.get_template_vars()), 10) | test_task.s(campaign)).apply_async()
+
+    (test_task.chunks(tuple(campaign.get_template_vars()), 10) | test_task_ret.s(campaign))()
 
     campaign.mark_queued()
     logger.info("Completed queueing Campaign '%s'", campaign)
     return True
 
 
+import time
+import random
+
+
 @task
-def check_send_retvals(rvs, rset, campaign):
-    logger.debug('rset=%s rvs=%s', rset, rvs)
-    for x, r in enumerate(rset):
-        rv = rvs[x]
-        logger.debug('x=%s r=%s rv=%s', x, r, rv)
+def test_task(*args, **kwargs):
+    logger.info('test_task: args=%s kwargs=%s', args, kwargs)
+    time.sleep(float(random.randint(1, 5)) / 5.0)
+    return True
+
+
+@task
+def test_task_ret(rvs, campaign, *args, **kwargs):
+    logger.info('test_task_ret: rvs=%s, campaign=%s args=%s kwargs=%s', rvs, campaign, args, kwargs)
+    return True
+
+
+@task
+def check_send_retvals(rvs, campaign):
+    #campaign.reload()
+
+    for x, rv in enumerate(rvs):
+        r = campaign.recipients[x]
 
         if rv:
-            logger.debug("Campaign '%s': Was able to send message to '%s'", campaign, r)
-            continue
-        logger.error("Campaign '%s': Was not able to send message to '%s'", campaign, r)
-        # TODO Put error in SQL, possibly email as bad depending on error
+            # TODO This probably belongs in the handle function
+            # TODO MTA response goes here
+            r.log.append(dict(success=True, at=timezone.now()))
+            r.success = True
+            campaign.state['sent_success_count'] += 1
 
-    # TODO find a way to mark Campaign as completed after all
-    # check_send_retvals return
-    #campaign.mark_completed()
+            logger.debug("Campaign '%s': Was able to send message to '%s'", campaign, r)
+        else:
+            # TODO This probably belongs in the handle function
+            # TODO MTA response goes here (bounceback, etc)
+            r.log.append(dict(success=False, at=timezone.now()))
+            r.success = False
+            campaign.state['sent_failure_count'] += 1
+
+            # TODO Put error in DB, possibly email as bad depending on error
+            logger.error("Campaign '%s': Was not able to send message to '%s'", campaign, r)
+
+    logger.info("Completed sending Campaign '%s'", campaign)
+    campaign.mark_completed()
 
 
 def handle_template(ctx, body=None, subject=None, context=None):

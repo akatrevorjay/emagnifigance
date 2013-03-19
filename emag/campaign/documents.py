@@ -17,6 +17,8 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     meta = dict(abstract=True)
 
     context = m.DictField()
+    log = m.ListField(m.DictField())
+    success = m.BooleanField()
 
     def _get_template_vars(self):
         ret = dict(
@@ -81,7 +83,10 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         self.save()
 
     def mark_started(self):
-        return self.mark_state('started')
+        ret = self.mark_state('started')
+        self.state['sent_success_count'] = 0
+        self.state['sent_failure_count'] = 0
+        return ret
 
     def mark_queued(self):
         return self.mark_state('queued')
@@ -142,6 +147,12 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     #template = m.ReferenceField(Template)
 
     """
+    Type
+    """
+
+    #_type = None
+
+    """
     Management
     """
 
@@ -153,9 +164,18 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         self.mark_started()
         return tasks.queue.delay(self)
 
+    def get_template_vars(self):
+        template_vars = self.template._get_template_vars()
+        for r in iter(self.recipients):
+            yield (r._get_template_vars(), template_vars)
+            #yield r._get_template_vars()
+        self.state['recipient_index'] = self.total
+        self.save()
+
     def chunk_next_recipients(self, count=1):
         for r in izip(*[iter(self.recipients[self.current:])] * count):
-            yield r
+            #yield r
+            yield r._get_template_vars()
         self.state['recipient_index'] = self.total
         self.save()
 

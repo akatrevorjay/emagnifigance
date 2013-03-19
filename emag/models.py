@@ -37,6 +37,9 @@ class ReprMixIn(object):
 
         return '<%s%s>' % (self.__class__.__name__, append)
 
+    def __unicode__(self):
+        return self.__repr__()
+
 
 """
 Config

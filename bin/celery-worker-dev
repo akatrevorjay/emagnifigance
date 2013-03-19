@@ -1,2 +1,3 @@
 #!/bin/bash
-exec ./bin/env ./manage.py celery worker -c 4 -P threads --autoreload -l INFO -Q celery,emails,sms,campaigns --purge -l DEBUG
+#exec ./bin/env ./manage.py celery worker -c 4 -P threads --autoreload -l INFO -Q celery,emails,sms,campaigns --purge -l DEBUG
+exec ./bin/env ./manage.py celery worker -l DEBUG -Q celery,emails,sms,campaigns --purge -l INFO

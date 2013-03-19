@@ -3,6 +3,7 @@ from mongoengine.signals import post_save
 import emag.campaign.documents as cmodels
 from django.template import Template
 #import logging
+import emag.campaign.tasks as ctasks
 
 
 class EmailRecipient(cmodels.BaseRecipient):
@@ -32,7 +33,6 @@ class EmailTemplate(cmodels.BaseTemplate):
         ret.update(dict(
             subject=Template(self.subject),
             sender=self.sender,
-            _type='email',
         ))
         return ret
 
@@ -40,6 +40,7 @@ class EmailTemplate(cmodels.BaseTemplate):
 class EmailCampaign(cmodels.BaseCampaign):
     template = m.EmbeddedDocumentField(EmailTemplate)
     recipients = m.ListField(m.EmbeddedDocumentField(EmailRecipient))
+    _handler = ctasks.handle_email
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):
