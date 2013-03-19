@@ -58,7 +58,7 @@ class BaseTemplate(ReprMixIn, m.EmbeddedDocument):
 class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     meta = dict(abstract=True)
 
-    name = m.StringField(regex=r'^[-\w _]+', max_length=64, unique=True, required=True)
+    name = m.StringField(regex=r'^[-\w _]+', max_length=64, required=True)
 
     description = m.StringField()
 

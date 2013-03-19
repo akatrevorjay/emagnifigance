@@ -9,6 +9,7 @@ import emag.campaign.tasks as ctasks
 class EmailRecipient(cmodels.BaseRecipient):
     _repr_vars = ['email']
 
+    # TODO Envelope Email Name (ie Trevor Joynson <trevorj@ctmsohio.com>)
     email = m.EmailField()
 
     def get_template_vars(self):
@@ -22,6 +23,7 @@ class EmailRecipient(cmodels.BaseRecipient):
 class EmailTemplate(cmodels.BaseTemplate):
     _repr_vars = ['subject']
 
+    # TODO Envelope Email Name (ie Trevor Joynson <trevorj@ctmsohio.com>)
     sender = m.EmailField()
     subject = m.StringField(max_length=255)
 

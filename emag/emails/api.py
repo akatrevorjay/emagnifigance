@@ -21,7 +21,7 @@ class EmailTemplateResource(resources.MongoEngineResource):
 
 class EmailCampaignResource(resources.MongoEngineResource):
     template = fields.EmbeddedDocumentField(embedded=EmailTemplateResource, attribute='template')
-    recipients = fields.EmbeddedListField(EmailRecipientResource, attribute='recipients')
+    recipients = fields.EmbeddedListField(EmailRecipientResource, attribute='recipients', full=True)
 
     class Meta:
         queryset = documents.EmailCampaign.objects.all()
