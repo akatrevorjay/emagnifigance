@@ -20,8 +20,8 @@ SERVER_IP = socket.gethostbyname(SERVER_NAME)
 # Base
 #
 
-#DEBUG = TEMPLATE_DEBUG = True
-DEBUG = TEMPLATE_DEBUG = False
+DEBUG = TEMPLATE_DEBUG = True
+#DEBUG = TEMPLATE_DEBUG = False
 
 ADMINS = (
     #('Trevor Joynson', 'trevorj@localhostsolutions.com'),
@@ -285,8 +285,8 @@ INSTALLED_APPS += ("south", )
 # Debug Toolbar
 #
 INSTALLED_APPS += (
-    'debug_toolbar',
-    'debug_toolbar_mongo',
+    #'debug_toolbar',
+    #'debug_toolbar_mongo',
     #'debug_toolbar_autoreload',
 )
 
@@ -336,7 +336,7 @@ DEBUG_TOOLBAR_CONFIG = {
     'HIDE_DJANGO_SQL': False,
     #'TAG': 'div',
     'ENABLE_STACKTRACES': True,
-    'SHOW_TOOLBAR_CALLBACK': custom_show_toolbar,
+    #'SHOW_TOOLBAR_CALLBACK': custom_show_toolbar,
 }
 
 INTERNAL_IPS = ['127.0.0.1']
@@ -361,33 +361,33 @@ INTERNAL_IPS = ['127.0.0.1']
 #
 # django-rest-framework
 #
-INSTALLED_APPS += ('rest_framework',
-                   'rest_framework.authtoken')
+#INSTALLED_APPS += ('rest_framework',
+#                   'rest_framework.authtoken')
 
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': (
-        #'rest_framework.permissions.AllowAny',
-        'rest_framework.permissions.IsAdminUser',
-    ),
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.JSONPRenderer',
-        'rest_framework.renderers.YAMLRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-        'rest_framework.renderers.XMLRenderer',
-        'rest_framework.renderers.TemplateHTMLRenderer',
-    ),
-    #'DEFAULT_PARSER_CLASSES': (
-    #    'rest_framework.parsers.JSONParser',
-    #    'rest_framework.parsers.FormParser'
-    #),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-        #'rest_framework.authentication.UserBasicAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ),
-    'PAGINATE_BY': 10,
-}
+#REST_FRAMEWORK = {
+#    'DEFAULT_PERMISSION_CLASSES': (
+#        #'rest_framework.permissions.AllowAny',
+#        'rest_framework.permissions.IsAdminUser',
+#    ),
+#    'DEFAULT_RENDERER_CLASSES': (
+#        'rest_framework.renderers.JSONRenderer',
+#        'rest_framework.renderers.JSONPRenderer',
+#        'rest_framework.renderers.YAMLRenderer',
+#        'rest_framework.renderers.BrowsableAPIRenderer',
+#        'rest_framework.renderers.XMLRenderer',
+#        'rest_framework.renderers.TemplateHTMLRenderer',
+#    ),
+#    #'DEFAULT_PARSER_CLASSES': (
+#    #    'rest_framework.parsers.JSONParser',
+#    #    'rest_framework.parsers.FormParser'
+#    #),
+#    'DEFAULT_AUTHENTICATION_CLASSES': (
+#        'rest_framework.authentication.SessionAuthentication',
+#        #'rest_framework.authentication.UserBasicAuthentication',
+#        'rest_framework.authentication.TokenAuthentication',
+#    ),
+#    'PAGINATE_BY': 10,
+#}
 
 #
 # django-extensions
