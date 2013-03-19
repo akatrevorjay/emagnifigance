@@ -440,18 +440,18 @@ TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 # Celery (async tasks)
 #
 
-# When debugging,
-if DEBUG:
-    # Send events, started events, task sent events
-    CELERY_SEND_EVENTS = True
-    CELERY_SEND_TASK_SENT_EVENT = True
-    CELERY_TRACK_STARTED = True
+## When debugging,
+#if DEBUG:
+#    # Send events, started events, task sent events
+#    CELERY_SEND_EVENTS = True
+#    CELERY_SEND_TASK_SENT_EVENT = True
+#    CELERY_TRACK_STARTED = True
 
-# Extra task modules (def=INSTALLED_APPS.tasks)
-CELERY_IMPORTS = (
-    # Enable HTTP dispatch task (http://celery.github.com/celery/userguide/remote-tasks.html)
-    'celery.task.http',
-)
+## Extra task modules (def=INSTALLED_APPS.tasks)
+#CELERY_IMPORTS = (
+#    # Enable HTTP dispatch task (http://celery.github.com/celery/userguide/remote-tasks.html)
+#    'celery.task.http',
+#)
 
 CELERY_ROUTES = {
     'emag.campaign.tasks.queue': {'queue': 'campaigns'},
@@ -463,7 +463,22 @@ CELERY_ROUTES = {
 #CELERY_ANNOTATIONS = {"*": {"rate_limit": "10/s"}}
 
 CELERY_RESULT_BACKEND = "amqp"
-CELERY_TASK_RESULT_EXPIRES = 3600
+
+#CELERY_RESULT_BACKEND = 'cache'
+## 2013-03-18 23:09:25,552 WARNING py.warnings.memcached@__init__:146
+## /home/trevorj/.virtualenvs/emagnifigance/local/lib/python2.7/site-packages/django/core/cache/backends/memcached.py:146:
+## DeprecationWarning: memcached.CacheClass has been split into
+## memcached.MemcachedCache and memcached.PyLibMCCache. Please update your cache
+## backend setting.
+#CELERY_CACHE_BACKEND = 'memcached://127.0.0.1:11211/'
+
+#CELERY_TASK_RESULT_EXPIRES = 3600
+CELERY_TASK_RESULT_EXPIRES = 300
+
+
+#CELERY_PREFETCH_MULTIPLIER = 8
+#CELERY_CONCURRENCY = 8
+
 
 #
 # django-celery-email

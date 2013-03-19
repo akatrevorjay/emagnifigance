@@ -17,14 +17,27 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     meta = dict(abstract=True)
 
     context = m.DictField()
-    log = m.ListField(m.DictField())
+
+    #log = m.ListField(m.DictField())
+    log = m.ListField()
+    #log = m.DictField()
+
     success = m.BooleanField()
 
-    def _get_template_vars(self):
+    def get_template_vars(self):
         ret = dict(
             context=self.context,
         )
         return ret
+
+    def append_log(self, **kwargs):
+        if 'at' not in kwargs:
+            kwargs['at'] = timezone.now()
+        self.log.append(kwargs)
+
+        success = kwargs.get('success')
+        if success is not None and self.success != success:
+            self.success = success
 
 
 class BaseTemplate(ReprMixIn, m.EmbeddedDocument):
@@ -33,7 +46,7 @@ class BaseTemplate(ReprMixIn, m.EmbeddedDocument):
     template = m.StringField()
     context = m.DictField()
 
-    def _get_template_vars(self):
+    def get_template_vars(self):
         ret = dict(
             body=Template(self.template),
             sender=self.sender,
@@ -150,7 +163,7 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     Type
     """
 
-    #_type = None
+    #campaign_type = None
 
     """
     Management
@@ -162,20 +175,23 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         if self.is_started:
             raise Exception('Campaign has already been started')
         self.mark_started()
-        return tasks.queue.delay(self)
+        return tasks.queue.delay(self.campaign_type, self.pk)
 
-    def get_template_vars(self):
-        template_vars = self.template._get_template_vars()
+    def get_template_vars(self, template_vars=False):
+        if template_vars:
+            template_vars = self.template.get_template_vars()
         for r in iter(self.recipients):
-            yield (r._get_template_vars(), template_vars)
-            #yield r._get_template_vars()
+            if template_vars is False:
+                yield r.get_template_vars()
+            else:
+                yield (r.get_template_vars(), template_vars)
         self.state['recipient_index'] = self.total
         self.save()
 
     def chunk_next_recipients(self, count=1):
         for r in izip(*[iter(self.recipients[self.current:])] * count):
             #yield r
-            yield r._get_template_vars()
+            yield r.get_template_vars()
         self.state['recipient_index'] = self.total
         self.save()
 
@@ -191,6 +207,13 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
                 logging.debug("Updated")
         #if not document.is_started:
         #    document.start()
+
+    def incr_success_count(self):
+        self.state['sent_success_count'] = self.state.get('sent_success_count', 0) + 1
+
+    def incr_failure_count(self):
+        self.state['sent_failure_count'] = self.state.get('sent_failure_count', 0) + 1
+
 
 #from mongoengine.signals import post_save
 #post_save.connect(BaseCampaign._start_campaign_on_save_created,

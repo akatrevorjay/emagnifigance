@@ -11,8 +11,8 @@ class EmailRecipient(cmodels.BaseRecipient):
 
     email = m.EmailField()
 
-    def _get_template_vars(self):
-        ret = super(EmailRecipient, self)._get_template_vars()
+    def get_template_vars(self):
+        ret = super(EmailRecipient, self).get_template_vars()
         ret.update(dict(
             email=self.email,
         ))
@@ -28,8 +28,8 @@ class EmailTemplate(cmodels.BaseTemplate):
     #def get_message(self):
     #    pass
 
-    def _get_template_vars(self):
-        ret = super(EmailTemplate, self)._get_template_vars()
+    def get_template_vars(self):
+        ret = super(EmailTemplate, self).get_template_vars()
         ret.update(dict(
             subject=Template(self.subject),
             sender=self.sender,
@@ -40,6 +40,8 @@ class EmailTemplate(cmodels.BaseTemplate):
 class EmailCampaign(cmodels.BaseCampaign):
     template = m.EmbeddedDocumentField(EmailTemplate)
     recipients = m.ListField(m.EmbeddedDocumentField(EmailRecipient))
+
+    campaign_type = 'emails'
     _handler = ctasks.handle_email
 
     @classmethod
