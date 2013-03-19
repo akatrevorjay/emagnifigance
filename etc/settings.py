@@ -20,8 +20,8 @@ SERVER_IP = socket.gethostbyname(SERVER_NAME)
 # Base
 #
 
-#DEBUG = TEMPLATE_DEBUG = True
-DEBUG = TEMPLATE_DEBUG = False
+DEBUG = TEMPLATE_DEBUG = True
+#DEBUG = TEMPLATE_DEBUG = False
 
 ADMINS = (
     #('Trevor Joynson', 'trevorj@localhostsolutions.com'),
