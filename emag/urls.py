@@ -17,8 +17,11 @@ urlpatterns = patterns(
     url(r'^admin/', include(admin.site.urls)),
 
     # django-rest-framework
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^api/v1/', include('emag.api.urls')),
+    #url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    #url(r'^api/v1/', include('emag.api.urls')),
+
+    # django-tastypie
+    url(r'^api/', include('emag.api.urls')),
 
     # Emails
     url(r'^emails/', include('emag.emails.urls')),

@@ -8,6 +8,7 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from itertools import izip
 import logging
+from uuid import uuid4
 
 from . import tasks
 
@@ -42,21 +43,24 @@ class BaseTemplate(ReprMixIn, m.EmbeddedDocument):
 class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     meta = dict(abstract=True)
 
-    uuid = m.UUIDField(binary=False)
     name = m.StringField(regex=r'^[-\w _]+', max_length=64, unique=True, required=True)
 
     description = m.StringField()
 
     """
-    Slug
+    Slug/UUID
     """
 
     slug = m.StringField()
+    uuid = m.UUIDField(binary=False)
 
     def save(self, *args, **kwargs):
         # Automagic slug generation
         if not self.slug:
             self.slug = slugify(self.name)
+        # Automagic uuid generation
+        if not self.uuid:
+            self.uuid = uuid4()
 
         return super(BaseCampaign, self).save(*args, **kwargs)
 

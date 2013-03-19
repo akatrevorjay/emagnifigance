@@ -263,8 +263,8 @@ INSTALLED_APPS += (
     #'breadcrumbs',
     #'jsonify',
 
-    ##'tastypie',
-    ##'tastypie_mongoengine',
+    'tastypie',
+    'tastypie_mongoengine',
     ##'backbone_tastypie',
 )
 
