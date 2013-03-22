@@ -23,4 +23,3 @@ def END(message, address=None, host=None):
 @stateless
 def FORWARD(message, address=None, host=None):
     relay.deliver(message)
-

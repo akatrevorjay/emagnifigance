@@ -17,11 +17,12 @@ def do_email():
         ec = EmailCampaign.objects.get(name=TEST_NAME % cur_type)
     except EmailCampaign.DoesNotExist:
         ec = EmailCampaign(name=TEST_NAME % cur_type)
-        for i in xrange(100):
+        for i in xrange(10):
             ec.recipients.append(
-                EmailRecipient(email='trevorj%d@ctmsohio.com' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+                #EmailRecipient(email='trevorj%d@ctmsohio.com' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+                EmailRecipient(email='"Trevor Joynson" <trevorj@ctmsohio.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
             )
-        ec.template = EmailTemplate(sender='trevorj@ctmsohio.com')
+        ec.template = EmailTemplate(sender='"Trevor Joynson" <trevorj@ctmsohio.com>')
         ec.template.subject = 'This is a test {{ first_name }}'
         ec.template.context = dict(
             test='this is a test of the broadcast system',
