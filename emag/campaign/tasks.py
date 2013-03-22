@@ -1,4 +1,4 @@
-from celery import task, chord, group, chunks
+from celery import task, chord, group, chunks, Task
 #from celery import group, subtask, group, chain
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
@@ -79,7 +79,7 @@ def queue(campaign_type, campaign_pk):
     #partial = campaign._handler.s(**t_vars)
     #(group(partial(r_vars) for r_vars in campaign.get_template_vars()) | check_send_retvals.s(campaign))()
     #partial = campaign._handler.s(**t_vars)
-    (group(campaign._handler.s(r_vars, **t_vars)
+    (group(campaign._handler.s(r_vars, t_vars)
      for r_vars in campaign.get_template_vars())
      | check_send_retvals.s(campaign_type, campaign_pk)
      )()
@@ -131,18 +131,27 @@ def check_send_retvals(rvs, campaign_type, campaign_pk):
     campaign.mark_completed()
 
 
-def handle_template(ctx, body=None, subject=None, context=None):
+def handle_template(r_vars, t_vars):
+    context = t_vars.get('context')
     if context:
-        ctx.update(context)
-    ctx_context = ctx.pop('context')
-    if ctx_context:
-        ctx.update(ctx_context)
-    ctx = Context(ctx)
+        r_vars.update(context)
+
+    r_vars_context = r_vars.pop('context')
+    if r_vars_context:
+        r_vars.update(r_vars_context)
+
+    r_vars = Context(r_vars)
+
     ret = {}
+
+    body = t_vars.get('body')
     if body:
-        ret['body'] = body.render(ctx)
+        ret['body'] = body.render(r_vars)
+
+    subject = t_vars.get('subject')
     if subject:
-        ret['subject'] = subject.render(ctx)
+        ret['subject'] = subject.render(r_vars)
+
     return ret
 
 
@@ -161,70 +170,56 @@ from email.message import Message
 import email.parser
 
 
-def send_email_mx(recipient=None, recipient_address=None,
-                  body=None, subject=None,
-                  sender=None, sender_address=None,
-                  attempts=1):
-    logger.info("Sending email '%s' => '%s': '%s'", sender, recipient, subject)
+class Handle_Email(Task):
+    relay = None
 
-    #logger.info("body=%s", body)
+    def run(self, r_vars, t_vars):
+        recipient = r_vars['email']
+        recipient_address = r_vars['email_address']
+        sender = t_vars['sender']
+        sender_address = t_vars['sender_address']
 
-    message = Message()
-    message = email.message_from_string(body)
+        tmpl = handle_template(r_vars, t_vars)
 
-    message['From'] = sender
-    message['To'] = recipient
-    message['Subject'] = subject
+        subject = tmpl['subject']
+        body = tmpl['body']
+        attempts = handle_email.request.retries
 
-    logger.info("message=%s", message)
+        logger.info("Sending Email for '%s'=>'%s' [%s]", sender, recipient, subject)
 
-    envelope = Envelope(sender=sender_address, recipients=[recipient_address])  # headers=None, message=None
-    envelope.parse(message)
+        # Create Message
+        message = Message()
+        message = email.message_from_string(body)
 
-    logger.info("envelope=%s", envelope)
+        message['From'] = sender
+        message['To'] = recipient
+        message['Subject'] = subject
 
-    relay = MxSmtpRelay()
-    relay.attempt(envelope, attempts)
+        envelope = Envelope(sender=sender_address, recipients=[recipient_address])
+        envelope.parse(message)
 
-    return True
+        logger.info("message=%s", message)
+        #logger.info("envelope=%s", envelope)
 
+        if not self.relay:
+            self.relay = MxSmtpRelay()
 
-#@task(max_retries=3)
-@task
-def handle_email(ctx, body=None, subject=None, sender=None, context=None, sender_address=None, sender_name=None):
-    recipient = ctx['email']
-    recipient_address = ctx['email_address']
+        if True:
+        #try:
+            self.relay.attempt(envelope, attempts)
+        #except Exception, e:
+        #    if handle_email.request.retries < 2:
+        #        # Retry this from another node
+        #        # Increase countdown each time
+        #        interval, step = 60, 60
+        #        raise handle_email.retry(countdown=interval + (step * handle_email.request.retries), exc=e)
+        #    else:
+        #        # We've reached our retry count, pfft
+        #        raise e
 
-    tmpl = handle_template(ctx, body=body, subject=subject, context=context)
-    logger.info("Sending Email for '%s' => '%s' [%s]", sender, recipient, tmpl)
+        return True
 
-    if True:
-    #try:
-        #emag.emails.tasks.send_email(recipient, tmpl['body'], tmpl['subject'], sender)
-        # TODO get attempt count, add as attempts=
-        #from emag.emails.tasks import send_email_mx
-        send_email_mx(
-            sender_address=sender_address,
-            sender=sender,
-
-            recipient=recipient,
-            recipient_address=recipient_address,
-
-            subject=tmpl['subject'],
-            body=tmpl['body'],
-
-            attempts=handle_email.request.retries,
-        )
-    #except Exception, e:
-    #    if handle_email.request.retries < 2:
-    #        # Retry this from another node
-    #        # Increase countdown each time
-    #        interval, step = 60, 60
-    #        raise handle_email.retry(countdown=interval + (step * handle_email.request.retries), exc=e)
-    #    else:
-    #        # We've reached our retry count, pfft
-    #        raise e
-    return True
+handle_email = Handle_Email()
 
 
 @task(max_retries=3)
