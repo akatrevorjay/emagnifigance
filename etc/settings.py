@@ -441,11 +441,11 @@ TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 #
 
 ## When debugging,
-#if DEBUG:
-#    # Send events, started events, task sent events
-#    CELERY_SEND_EVENTS = True
-#    CELERY_SEND_TASK_SENT_EVENT = True
-#    CELERY_TRACK_STARTED = True
+if DEBUG:
+    # Send events, started events, task sent events
+    CELERY_SEND_EVENTS = True
+    CELERY_SEND_TASK_SENT_EVENT = True
+    CELERY_TRACK_STARTED = True
 
 ## Extra task modules (def=INSTALLED_APPS.tasks)
 #CELERY_IMPORTS = (
@@ -455,13 +455,16 @@ TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 
 CELERY_ROUTES = {
     'emag.campaign.tasks.queue': {'queue': 'campaigns'},
-    'emag.campaign.tasks.handle_email': {'queue': 'emails'},
+    #'emag.campaign.tasks.handle_email': {'queue': 'emails'},
+    'emag.campaign.tasks.Handle_Email': {'queue': 'emails'},
     'emag.campaign.tasks.handle_sms': {'queue': 'sms'},
 }
 
 #CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}
 #CELERY_ANNOTATIONS = {"*": {"rate_limit": "10/s"}}
 
+#BROKER_URL = "librabbitmq://guest:guest@localhost:5672//"
+#BROKER_URL = "amqp://guest:guest@localhost:5672//"
 CELERY_RESULT_BACKEND = "amqp"
 
 #CELERY_RESULT_BACKEND = 'cache'

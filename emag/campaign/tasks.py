@@ -5,13 +5,13 @@ logger = get_task_logger(__name__)
 from django.template import Context
 from django.conf import settings
 from django.utils import timezone
+import time
 #import emag.emails.tasks
 import emag.sms.tasks
 
 
 #import celery
 #from celery.result import AsyncResult
-#import time
 #import random
 
 
@@ -79,8 +79,8 @@ def queue(campaign_type, campaign_pk):
     #partial = campaign._handler.s(**t_vars)
     #(group(partial(r_vars) for r_vars in campaign.get_template_vars()) | check_send_retvals.s(campaign))()
     #partial = campaign._handler.s(**t_vars)
-    (group(campaign._handler.s(r_vars, t_vars, campaign_type, campaign_pk, str(campaign.uuid))
-     for r_vars in campaign.get_template_vars())
+    (group(campaign._handler.s(r_vars, t_vars, campaign_type, campaign_pk, r_index, str(campaign.uuid))
+     for r_index, r_vars in enumerate(campaign.get_template_vars()))
      | check_send_retvals.s(campaign_type, campaign_pk)
      )()
 
@@ -132,6 +132,8 @@ def check_send_retvals(rvs, campaign_type, campaign_pk):
 
 
 def handle_template(r_vars, t_vars):
+    r_vars = r_vars.copy()
+
     context = t_vars.get('context')
     if context:
         r_vars.update(context)
@@ -174,14 +176,47 @@ from slimta.smtp import ConnectionLost, BadReply
 from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
 from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
 from slimta.relay.smtp.mx import NoDomainError
+from slimta.policy.headers import AddDateHeader, AddMessageIdHeader, AddReceivedHeader
+#from slimta.policy.split import RecipientDomainSplit, RecipientSplit
 from gevent.dns import DNSError
 
 
 class Handle_Email(Task):
-    relay = None
+    #_relay = None
 
-    def run(self, r_vars, t_vars, campaign_type, campaign_pk, campaign_uuid):
-        #campaign = get_campaign(campaign_type, campaign_pk)
+    #@property
+    #def relay(self):
+    #    if not self._relay:
+    #        self._relay = MxSmtpRelay(pool_size=2,
+    #                                  #tls=tls,
+    #                                  ehlo_as='emag-dev.trevorj.local',
+    #                                  connect_timeout=20.0,
+    #                                  command_timeout=10.0,
+    #                                  data_timeout=20.0,
+    #                                  idle_timeout=10.0,
+    #                                  )
+    #    return self._relay
+
+    def __init__(self):
+        Task.__init__(self)
+        self.relay = MxSmtpRelay(
+            pool_size=2,
+            #tls=tls,
+            ehlo_as=settings.SERVER_NAME,
+            connect_timeout=20.0,
+            command_timeout=10.0,
+            data_timeout=20.0,
+            idle_timeout=10.0,
+        )
+        self.policies = [
+            AddDateHeader(),
+            AddMessageIdHeader(hostname=settings.SERVER_NAME),
+            AddReceivedHeader(),
+        ]
+
+    def run(self, r_vars, t_vars, campaign_type, campaign_pk, r_index, campaign_uuid):
+        campaign = get_campaign(campaign_type, campaign_pk)
+        r = campaign.recipients[r_index]
 
         recipient = r_vars['email']
         recipient_address = r_vars['email_address']
@@ -212,18 +247,41 @@ class Handle_Email(Task):
         envelope = Envelope(sender=sender_address, recipients=[recipient_address])
         envelope.parse(message)
 
+        # Needed by some policies
+        envelope.timestamp = time.time()
+        envelope.client.update(
+            # Hostname
+            name=settings.SERVER_NAME,
+            # PTR
+            host=settings.SERVER_NAME,
+            # IP
+            ip=settings.SERVER_IP,
+            # Auth name
+            auth='emag',
+            # Protocol
+            protocol='SMTP',
+        )
+
+        for policy in self.policies:
+            logger.info("Applying policy %s", policy)
+            policy.apply(envelope)
+
         #logger.info("message=%s", message)
         #logger.info("envelope=%s", envelope)
-
-        if not self.relay:
-            self.relay = MxSmtpRelay()
+        #logger.info("envelope_flat=%s", envelope.flatten())
+        print envelope.flatten()
 
         ret = False
         try:
             ret = self.relay.attempt(envelope, attempts)
         #except ConnectionLost, e:
         #except Exception, e:
-        except (SlimtaError, ConnectionLost, BadReply, DNSError), e:
+        #except (SlimtaError, ConnectionLost, BadReply, DNSError), e:
+        except (SlimtaError, DNSError) as e:
+            if isinstance(e, DNSError):
+                logger.error('Got DNSError: %s', e)
+                raise self.retry(countdown=5, exc=e)
+
             error_code = None
             bounce = False
             retry = False
@@ -246,12 +304,13 @@ class Handle_Email(Task):
             else:
                 error_code_msg = 'unknown error'
 
-            logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, e.message)
+            logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, e)
 
             if retry and attempts < 3:
                 # Retry this from another node
                 # Increase countdown each time
-                step = 330  # 5.5m
+                #step = 330  # 5.5m
+                step = 5  # 5.5m
                 countdown = step + (step * attempts)
                 # TODO record this message as the log in the recipient log
                 logger.warning('Retrying in %ds', countdown)
@@ -265,7 +324,8 @@ class Handle_Email(Task):
                     # We've reached our retry count, pfft
                     error_msg = 'Past retry count'
                 logger.error('Not retrying: %s.', error_msg)
-                raise e
+                return False
+                #raise e
 
         return ret
 
