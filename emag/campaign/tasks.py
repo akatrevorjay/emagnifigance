@@ -79,7 +79,7 @@ def queue(campaign_type, campaign_pk):
     #partial = campaign._handler.s(**t_vars)
     #(group(partial(r_vars) for r_vars in campaign.get_template_vars()) | check_send_retvals.s(campaign))()
     #partial = campaign._handler.s(**t_vars)
-    (group(campaign._handler.s(r_vars, t_vars)
+    (group(campaign._handler.s(r_vars, t_vars, campaign_type, campaign_pk, str(campaign.uuid))
      for r_vars in campaign.get_template_vars())
      | check_send_retvals.s(campaign_type, campaign_pk)
      )()
@@ -169,11 +169,20 @@ import email.message
 from email.message import Message
 import email.parser
 
+from slimta.core import SlimtaError
+from slimta.smtp import ConnectionLost, BadReply
+from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
+from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
+from slimta.relay.smtp.mx import NoDomainError
+from gevent.dns import DNSError
+
 
 class Handle_Email(Task):
     relay = None
 
-    def run(self, r_vars, t_vars):
+    def run(self, r_vars, t_vars, campaign_type, campaign_pk, campaign_uuid):
+        #campaign = get_campaign(campaign_type, campaign_pk)
+
         recipient = r_vars['email']
         recipient_address = r_vars['email_address']
         sender = t_vars['sender']
@@ -183,13 +192,18 @@ class Handle_Email(Task):
 
         subject = tmpl['subject']
         body = tmpl['body']
-        attempts = handle_email.request.retries
+        attempts = self.request.retries
 
         logger.info("Sending Email for '%s'=>'%s' [%s]", sender, recipient, subject)
 
         # Create Message
         message = Message()
         message = email.message_from_string(body)
+
+        message['Precedence'] = 'list'
+        #message['List-Id'] = str(campaign.uuid)
+        message['List-Id'] = campaign_uuid
+        #message['List-Unsubscribe'] = None
 
         message['From'] = sender
         message['To'] = recipient
@@ -198,26 +212,56 @@ class Handle_Email(Task):
         envelope = Envelope(sender=sender_address, recipients=[recipient_address])
         envelope.parse(message)
 
-        logger.info("message=%s", message)
+        #logger.info("message=%s", message)
         #logger.info("envelope=%s", envelope)
 
         if not self.relay:
             self.relay = MxSmtpRelay()
 
-        if True:
-        #try:
-            self.relay.attempt(envelope, attempts)
+        ret = False
+        try:
+            ret = self.relay.attempt(envelope, attempts)
+        #except ConnectionLost, e:
         #except Exception, e:
-        #    if handle_email.request.retries < 2:
-        #        # Retry this from another node
-        #        # Increase countdown each time
-        #        interval, step = 60, 60
-        #        raise handle_email.retry(countdown=interval + (step * handle_email.request.retries), exc=e)
-        #    else:
-        #        # We've reached our retry count, pfft
-        #        raise e
+        except (SlimtaError, ConnectionLost, BadReply, DNSError), e:
+            error_num = None
+            bounce = False
+            retry = False
 
-        return True
+            # Get error number from attempt
+            if isinstance(e, RelayError):
+                error_num = e.reply.code
+                # If e is 4xx, retry, if error is 5xx, do not retry,
+                # bounce recipient
+                if isinstance(e, PermanentRelayError):
+                    bounce = True
+                else:
+                    retry = True
+            else:
+                retry = True
+
+            logger.error('Got error %s sending (bounce=%s, retry=%s): %s', error_num, bounce, retry, e.message)
+
+            if retry and attempts < 3:
+                # Retry this from another node
+                # Increase countdown each time
+                step = 330  # 5.5m
+                countdown = step + (step * attempts)
+                # TODO record this message as the log in the recipient log
+                logger.error('Retrying in %ds', countdown)
+                raise self.retry(countdown=countdown, exc=e)
+            else:
+                if bounce:
+                    # Bounce recipient
+                    # TODO Mark recipient as bounced
+                    error_msg = 'Bouncing recipient'
+                else:
+                    # We've reached our retry count, pfft
+                    error_msg = 'Past retry count'
+                logger.error('Not retrying: %s.', error_msg)
+                raise e
+
+        return ret
 
 handle_email = Handle_Email()
 

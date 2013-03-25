@@ -22,6 +22,9 @@ def do_email():
                 #EmailRecipient(email='trevorj%d@ctmsohio.com' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
                 EmailRecipient(email='"Trevor Joynson" <trevorj@ctmsohio.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
             )
+            #ec.recipients.append(
+            #    EmailRecipient(email='"Eric Cooper" <ecooper@ctmsohio.com>', context=dict(first_name='Eric%d' % i, last_name='Cooper%d' % i)),
+            #)
         ec.template = EmailTemplate(sender='"Trevor Joynson" <trevorj@ctmsohio.com>')
         ec.template.subject = 'This is a test {{ first_name }}'
         ec.template.context = dict(
