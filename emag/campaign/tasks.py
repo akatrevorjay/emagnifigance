@@ -215,8 +215,8 @@ class Handle_Email(Task):
         ]
 
     def run(self, r_vars, t_vars, campaign_type, campaign_pk, r_index, campaign_uuid):
-        campaign = get_campaign(campaign_type, campaign_pk)
-        r = campaign.recipients[r_index]
+        #campaign = get_campaign(campaign_type, campaign_pk)
+        #r = campaign.recipients[r_index]
 
         recipient = r_vars['email']
         recipient_address = r_vars['email_address']
@@ -263,13 +263,13 @@ class Handle_Email(Task):
         )
 
         for policy in self.policies:
-            logger.info("Applying policy %s", policy)
+            #logger.info("Applying policy %s", policy)
             policy.apply(envelope)
 
         #logger.info("message=%s", message)
         #logger.info("envelope=%s", envelope)
         #logger.info("envelope_flat=%s", envelope.flatten())
-        print envelope.flatten()
+        #print envelope.flatten()
 
         ret = False
         try:
@@ -280,7 +280,16 @@ class Handle_Email(Task):
         except (SlimtaError, DNSError) as e:
             if isinstance(e, DNSError):
                 logger.error('Got DNSError: %s', e)
-                raise self.retry(countdown=5, exc=e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                logger.error('Got DNSError: %s', e)
+                #raise self.retry(countdown=5, exc=e)
 
             error_code = None
             bounce = False
@@ -306,11 +315,11 @@ class Handle_Email(Task):
 
             logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, e)
 
-            if retry and attempts < 3:
+            if retry and attempts < 10:
                 # Retry this from another node
                 # Increase countdown each time
-                #step = 330  # 5.5m
-                step = 5  # 5.5m
+                step = 330  # 5.5m
+                #step = 1  # DEBUG HACK
                 countdown = step + (step * attempts)
                 # TODO record this message as the log in the recipient log
                 logger.warning('Retrying in %ds', countdown)
