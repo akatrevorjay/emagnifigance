@@ -230,6 +230,7 @@ class Handle_Email(Task):
 
             # Get error number from attempt
             if isinstance(e, RelayError):
+                logger.info('reply=%s', e.reply)
                 error_num = e.reply.code
                 # If e is 4xx, retry, if error is 5xx, do not retry,
                 # bounce recipient
@@ -248,7 +249,7 @@ class Handle_Email(Task):
                 step = 330  # 5.5m
                 countdown = step + (step * attempts)
                 # TODO record this message as the log in the recipient log
-                logger.error('Retrying in %ds', countdown)
+                logger.warning('Retrying in %ds', countdown)
                 raise self.retry(countdown=countdown, exc=e)
             else:
                 if bounce:
