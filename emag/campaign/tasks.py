@@ -224,14 +224,14 @@ class Handle_Email(Task):
         #except ConnectionLost, e:
         #except Exception, e:
         except (SlimtaError, ConnectionLost, BadReply, DNSError), e:
-            error_num = None
+            error_code = None
             bounce = False
             retry = False
 
             # Get error number from attempt
             if isinstance(e, RelayError):
                 logger.info('reply=%s', e.reply)
-                error_num = e.reply.code
+                error_code = e.reply.code
                 # If e is 4xx, retry, if error is 5xx, do not retry,
                 # bounce recipient
                 if isinstance(e, PermanentRelayError):
@@ -241,7 +241,12 @@ class Handle_Email(Task):
             else:
                 retry = True
 
-            logger.error('Got error %s sending (bounce=%s, retry=%s): %s', error_num, bounce, retry, e.message)
+            if error_code:
+                error_code_msg = 'error code %s' % error_code
+            else:
+                error_code_msg = 'unknown error'
+
+            logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, e.message)
 
             if retry and attempts < 3:
                 # Retry this from another node
