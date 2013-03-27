@@ -441,11 +441,11 @@ TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 #
 
 ## When debugging,
-if DEBUG:
-    # Send events, started events, task sent events
-    CELERY_SEND_EVENTS = True
-    CELERY_SEND_TASK_SENT_EVENT = True
-    CELERY_TRACK_STARTED = True
+#if DEBUG:
+#    # Send events, started events, task sent events
+#    CELERY_SEND_EVENTS = True
+#    CELERY_SEND_TASK_SENT_EVENT = True
+#    CELERY_TRACK_STARTED = True
 
 ## Extra task modules (def=INSTALLED_APPS.tasks)
 #CELERY_IMPORTS = (
