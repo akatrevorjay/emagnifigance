@@ -100,7 +100,7 @@ class Handle_Email(Task):
 
         # Create Message
         message = Message()
-        message = email.message_from_string(body)
+        message = email.message_from_string('{% autoescape off %}' + body + '{% endautoescape %}')
 
         message['Precedence'] = 'list'
         #message['List-Id'] = str(campaign.uuid)
