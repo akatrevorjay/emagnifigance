@@ -1,17 +1,17 @@
 
-1. Setup uwsgi with nginx with SSL through localhostsolutions.com domain.
+X 1. Setup uwsgi with nginx with SSL through localhostsolutions.com domain.
 
-2. Setup external IPs with Juniper
+X 2. Setup external IPs with Juniper
 
-3. Setup PTR records for IPs
+X 3. Setup PTR records for IPs
 
 4. Split up celery procs per IP
 
-5. Make EmailFields accept envelope froms (Trevor Joynson <trevorj@ctmsohio.com>)
+X 5. Make EmailFields accept envelope froms (Trevor Joynson <trevorj@ctmsohio.com>)
 
-6. Finish Lamson/Slimta engine for emails
+~ 6. Finish Lamson/Slimta engine for emails
 
-7. Fix dupe save
+X 7. Fix dupe save
 
 8. Exclude some fields from API view
 
