@@ -1,0 +1,10 @@
+/opt/emag/var/log/*.log {
+       daily
+       rotate 90
+       copytruncate
+       delaycompress
+       compress
+       notifempty
+       missingok
+}
+
