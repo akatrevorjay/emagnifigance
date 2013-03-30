@@ -2,6 +2,7 @@
 SELF=$(basename "$0")
 
 LOG_LEVEL="INFO"
+LOG_FILE="./var/log/$SELF.log"
 CONCURRENCY=64
 
 # ----- main -----
@@ -11,9 +12,11 @@ QUEUES=""
 case "$SELF" in
     *sender*)
         QUEUES+=",emails,sms"
-        LOG_LEVEL="DEBUG" ;;&
+        LOG_LEVEL="DEBUG"
+        HOSTNAME_SUFFIX="sender." ;;&
     *main*)
-        QUEUES+=",celery,campaigns" ;;&
+        QUEUES+=",celery,campaigns"
+        HOSTNAME_SUFFIX="main." ;;&
 esac
 
 # queue prepend
@@ -28,6 +31,14 @@ esac
 [[ -z "$CONCURRENCY" ]] \
   || CONCURRENCY="-c $CONCURRENCY"
 
-cmd="./bin/env ./manage.py celery worker $QUEUES $LOG_LEVEL -P gevent $CONCURRENCY"
-echo "[$cmd]"
-exec $cmd
+# hostname
+[[ -z "$HOSTNAME_SUFFIX" ]] \
+  || HOSTNAME_SUFFIX="-n $HOSTNAME-$HOSTNAME_SUFFIX"
+
+# log file prepend
+[[ -z "$LOG_FILE" ]] \
+  || LOG_FILE="-f $LOG_FILE"
+
+cmd="./bin/env ./manage.py celery worker $HOSTNAME_SUFFIX $QUEUES $LOG_LEVEL $LOG_FILE -P gevent $CONCURRENCY"
+echo "[$cmd $*]"
+exec $cmd "$@"
