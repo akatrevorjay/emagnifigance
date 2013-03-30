@@ -1,4 +1,7 @@
-from tastypie import authorization, cache
+#from tastypie import cache
+from tastypie.authentication import ApiKeyAuthentication
+#from tastypie.authorization import DjangoAuthorization
+from tastypie.authorization import Authorization
 from tastypie_mongoengine import resources, fields
 #from tastypie.resources import ModelResource
 #from emag.emails.documents import EmailRecipient, EmailTemplate, EmailCampaign
@@ -26,8 +29,13 @@ class EmailCampaignResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.EmailCampaign.objects.all()
         allowed_methods = ('get', 'post', 'put', 'delete')
-        authorization = authorization.Authorization()
+
         resource_name = 'email_campaign'
+
+        authentication = ApiKeyAuthentication()
+        #authorization = DjangoAuthorization()
+        authorization = Authorization()
+
         #cache = cache.NoCache()
 
 
