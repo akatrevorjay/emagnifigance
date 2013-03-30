@@ -1,0 +1,44 @@
+#!/bin/bash
+SELF=$(basename "$0")
+
+LOG_LEVEL="INFO"
+LOG_FILE="./var/log/$SELF.log"
+CONCURRENCY=64
+
+# ----- main -----
+
+# queues from script name
+QUEUES=""
+case "$SELF" in
+    *sender*)
+        QUEUES+=",emails,sms"
+        LOG_LEVEL="DEBUG"
+        HOSTNAME_SUFFIX="sender." ;;&
+    *main*)
+        QUEUES+=",celery,campaigns"
+        HOSTNAME_SUFFIX="main." ;;&
+esac
+
+# queue prepend
+[[ -z "$QUEUES" ]] \
+  || QUEUES="-Q ${QUEUES:1}"
+
+# log level prepend
+[[ -z "$LOG_LEVEL" ]] \
+  || LOG_LEVEL="-l $LOG_LEVEL"
+
+# concurrency prepend
+[[ -z "$CONCURRENCY" ]] \
+  || CONCURRENCY="-c $CONCURRENCY"
+
+# hostname
+[[ -z "$HOSTNAME_SUFFIX" ]] \
+  || HOSTNAME_SUFFIX="-n $HOSTNAME-$HOSTNAME_SUFFIX"
+
+# log file prepend
+[[ -z "$LOG_FILE" ]] \
+  || LOG_FILE="-f $LOG_FILE"
+
+cmd="./bin/env ./manage.py celery worker $HOSTNAME_SUFFIX $QUEUES $LOG_LEVEL $LOG_FILE -P gevent $CONCURRENCY"
+echo "[$cmd $*]"
+exec $cmd "$@"
