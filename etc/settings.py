@@ -13,8 +13,10 @@ CAMPAIGN_BLOCK_SIZE = 1
 #
 
 import socket
-SERVER_NAME = socket.gethostname()
+#SERVER_NAME = socket.gethostname()
+SERVER_NAME = 'mx20.emagnifigance.net'
 SERVER_IP = socket.gethostbyname(SERVER_NAME)
+#SERVER_IP = ''
 
 #
 # Base
@@ -38,7 +40,7 @@ DATABASES = {
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['emag-api.localhostsolutions.com', '10.13.37.184']
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -455,8 +457,7 @@ TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 
 CELERY_ROUTES = {
     'emag.campaign.tasks.queue': {'queue': 'campaigns'},
-    #'emag.campaign.tasks.handle_email': {'queue': 'emails'},
-    'emag.campaign.tasks.Handle_Email': {'queue': 'emails'},
+    'emag.emails.tasks.Handle_Email': {'queue': 'emails'},
     'emag.campaign.tasks.handle_sms': {'queue': 'sms'},
 }
 

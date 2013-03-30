@@ -2,4 +2,4 @@
 #exec ./bin/env ./manage.py celery worker -c 4 -P threads --autoreload -l INFO -Q celery,emails,sms,campaigns --purge -l DEBUG
 #exec ./bin/env ./manage.py celery worker -Q celery,emails,sms,campaigns --purge -l INFO --autoreload
 #exec ./bin/env ./manage.py celery worker -Q celery,emails,sms,campaigns --purge -l DEBUG -P gevent
-exec ./bin/env ./manage.py celery worker -Q celery,campaigns --purge -l INFO -P gevent
+exec ./bin/env ./manage.py celery worker -Q celery,campaigns -l INFO -P gevent -c 32

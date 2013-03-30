@@ -4,7 +4,6 @@ import emag.campaign.documents as cmodels
 from django.template import Template
 import logging
 import re
-import emag.campaign.tasks as ctasks
 
 
 class EnvelopeEmailField(m.StringField):
@@ -74,12 +73,15 @@ class EmailTemplate(cmodels.BaseTemplate):
         return (name, sender)
 
 
+import emag.emails.tasks as etasks
+
+
 class EmailCampaign(cmodels.BaseCampaign):
     template = m.EmbeddedDocumentField(EmailTemplate)
     recipients = m.ListField(m.EmbeddedDocumentField(EmailRecipient))
 
     campaign_type = 'emails'
-    _handler = ctasks.handle_email
+    _handler = etasks.handle_email
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):
