@@ -2,6 +2,7 @@ import mongoengine as m
 from mongoengine.signals import post_save
 import emag.campaign.documents as cmodels
 from django.template import Template
+from django.contrib.auth.models import User
 import logging
 import re
 
@@ -79,6 +80,12 @@ import emag.emails.tasks as etasks
 class EmailCampaign(cmodels.BaseCampaign):
     template = m.EmbeddedDocumentField(EmailTemplate)
     recipients = m.ListField(m.EmbeddedDocumentField(EmailRecipient))
+
+    user_pk = m.IntField()
+
+    @property
+    def user(self):
+        return User.objects.get(pk=self.user_pk)
 
     campaign_type = 'emails'
     _handler = etasks.handle_email

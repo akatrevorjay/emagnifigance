@@ -7,6 +7,7 @@ from tastypie_mongoengine import resources, fields
 #from emag.emails.documents import EmailRecipient, EmailTemplate, EmailCampaign
 from . import documents
 #from emag.campaign.api import RecipientResource, TemplateResource, CampaignResource
+from django.conf.urls import url
 
 
 class EmailRecipientResource(resources.MongoEngineResource):
@@ -28,7 +29,8 @@ class EmailCampaignResource(resources.MongoEngineResource):
 
     class Meta:
         queryset = documents.EmailCampaign.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        #allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post')
 
         resource_name = 'email_campaign'
 
@@ -38,8 +40,22 @@ class EmailCampaignResource(resources.MongoEngineResource):
 
         #cache = cache.NoCache()
 
+        # TODO return only UUID of campaign
+        always_return_data = True
 
-#class EmailCampaignResource(ModelResource):
-#    class Meta:
-#        queryset = EmailCampaign.objects.all()
-#        resource_name = 'email_campaign'
+        #detail_uri_name = 'uuid'
+
+    #def prepend_urls(self):
+    #    return [
+    #        url(r"^(?P<resource_name>%s)/(?P<uuid>[\w\d_.-]+)/$" % self._meta.resource_name,
+    #            self.wrap_view('dispatch_detail'),
+    #            name="api_dispatch_detail",
+    #            ),
+    #    ]
+
+    #def obj_create(self, bundle, request=None, **kwargs):
+    #    kwargs['user_pk'] = request.user.pk
+    #    return super(EmailCampaignResource, self).obj_create(bundle, request, **kwargs)
+
+    #def apply_authorization_limits(self, request, object_list):
+    #    return object_list.filter(user_pk=request.user.pk)
