@@ -1,5 +1,1 @@
-#!/bin/bash
-#exec ./bin/env ./manage.py celery worker -c 4 -P threads --autoreload -l INFO -Q celery,emails,sms,campaigns --purge -l DEBUG
-#exec ./bin/env ./manage.py celery worker -Q celery,emails,sms,campaigns --purge -l INFO --autoreload
-#exec ./bin/env ./manage.py celery worker -Q celery,emails,sms,campaigns --purge -l DEBUG -P gevent
-exec ./bin/env ./manage.py celery worker -Q emails,sms -l DEBUG -P gevent -c 64
+_celery-worker-common
