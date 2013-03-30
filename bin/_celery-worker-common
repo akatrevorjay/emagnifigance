@@ -1,0 +1,33 @@
+#!/bin/bash
+SELF=$(basename "$0")
+
+LOG_LEVEL="INFO"
+CONCURRENCY=64
+
+# ----- main -----
+
+# queues from script name
+QUEUES=""
+case "$SELF" in
+    *sender*)
+        QUEUES+=",emails,sms"
+        LOG_LEVEL="DEBUG" ;;&
+    *main*)
+        QUEUES+=",celery,campaigns" ;;&
+esac
+
+# queue prepend
+[[ -z "$QUEUES" ]] \
+  || QUEUES="-Q ${QUEUES:1}"
+
+# log level prepend
+[[ -z "$LOG_LEVEL" ]] \
+  || LOG_LEVEL="-l $LOG_LEVEL"
+
+# concurrency prepend
+[[ -z "$CONCURRENCY" ]] \
+  || CONCURRENCY="-c $CONCURRENCY"
+
+cmd="./bin/env ./manage.py celery worker $QUEUES $LOG_LEVEL -P gevent $CONCURRENCY"
+echo "[$cmd]"
+exec $cmd
