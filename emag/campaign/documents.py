@@ -48,7 +48,7 @@ class BaseTemplate(ReprMixIn, m.EmbeddedDocument):
 
     def get_template_vars(self):
         ret = dict(
-            body=Template(self.template),
+            body=Template('{% autoescape off %}' + self.template + '{% endautoescape %}'),
             sender=self.sender,
             context=self.context,
         )

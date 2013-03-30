@@ -89,7 +89,6 @@ class Handle_Email(Task):
         recipient_address = r_vars['email_address']
         sender = t_vars['sender']
         sender_address = t_vars['sender_address']
-
         tmpl = handle_template(r_vars, t_vars)
 
         subject = tmpl['subject']
@@ -100,7 +99,7 @@ class Handle_Email(Task):
 
         # Create Message
         message = Message()
-        message = email.message_from_string('{% autoescape off %}' + body + '{% endautoescape %}')
+        message = email.message_from_string(body)
 
         message['Precedence'] = 'list'
         #message['List-Id'] = str(campaign.uuid)
