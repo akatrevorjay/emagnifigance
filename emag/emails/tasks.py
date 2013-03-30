@@ -137,7 +137,7 @@ class Handle_Email(Task):
         #logger.info("envelope_flat=%s", envelope.flatten())
         #print envelope.flatten()
 
-        from gevent.dns import DNSError
+        #from gevent.dns import DNSError
 
         ret = False
         try:
@@ -145,20 +145,8 @@ class Handle_Email(Task):
         #except ConnectionLost, e:
         #except Exception, e:
         #except (SlimtaError, ConnectionLost, BadReply, DNSError), e:
-        except (SlimtaError, DNSError) as e:
-            if isinstance(e, DNSError):
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                logger.error('Got DNSError: %s', e)
-                #raise self.retry(countdown=5, exc=e)
-
+        #except (SlimtaError, DNSError) as e:
+        except (SlimtaError, Exception) as e:
             error_code = None
             bounce = False
             retry = False
