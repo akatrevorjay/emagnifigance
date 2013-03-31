@@ -192,13 +192,22 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
     def dehydrate_campaign_resource_uri(self, bundle):
         return str(self.get_resource_uri(bundle)).replace(self.Meta.resource_name, EmailCampaignResource.Meta.resource_name)
 
+    #state = fields.fields.DictField(readonly=True)
+    state = tfields.DictField(readonly=True)
+
+    def dehydrate_state(self, bundle):
+        state = getattr(bundle.obj, 'state', None)
+        if state:
+            state.pop('recipient_index')
+        return state
+
     #def dehydrate(self, bundle):
     #    ## TODO Only if listing, not if in detail
     #    #request = getattr(bundle, 'request', None)
     #    #if request:
     #    #    if request.META.get('API_LIST'):
     #    #        pass
-
+    #
     #    return bundle
 
     def dispatch_list(self, request, **kwargs):
