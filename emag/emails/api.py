@@ -83,7 +83,7 @@ class EmailRecipientResource(resources.MongoEngineResource):
     class Meta:
         object_class = documents.EmailRecipient
         #cache = cache.NoCache()
-        #excludes = ('log', )
+        excludes = ('log', )
 
 
 class EmailTemplateResource(resources.MongoEngineResource):
