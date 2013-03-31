@@ -99,12 +99,13 @@ class Handle_Email(Task):
         message = email.message_from_string(body)
 
         message['Precedence'] = 'list'
-        #message['List-Id'] = str(campaign.uuid)
         message['List-Id'] = campaign_uuid
         #message['List-Unsubscribe'] = None
 
-        # TODO Fix this, this is dirty and is a quick hack
-        message['Return-Path'] = 'bounce-%s-%s@emagnifigance.net' % (campaign_pk, r_index)
+        # TODO This is dirty and is a quick hack
+        magic = '%s-%s' % (campaign_pk, r_index)
+        message['List-Index'] = magic
+        message['Return-Path'] = 'ret-%s@emagnifigance.net' % magic
 
         message['From'] = sender
         message['To'] = recipient

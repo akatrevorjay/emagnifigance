@@ -8,5 +8,5 @@ from emag.emails.tasks2 import handle_fbl
 @route("fbl-(vendor)@(host)", vendor="\w+")
 @stateless
 def FBL(message, vendor=None, host=None):
-    logging.debug('FBL vendor=%s host=%s', vendor, host)
+    logging.info('Got FBL vendor=%s host=%s', vendor, host)
     handle_fbl.delay(message, vendor=vendor, host=host)

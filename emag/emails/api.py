@@ -215,6 +215,7 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
     failed_recipients = tfields.ListField(readonly=True)
 
     def dehydrate_failed_recipients(self, bundle):
+        # TODO Also show FBL hits
         return [dict(email=r.email, log=r.log)
                 for r in bundle.obj.recipients
                 if r.success is False]

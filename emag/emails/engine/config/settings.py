@@ -1,14 +1,14 @@
 # This file contains python variables that configure Lamson for email processing.
-#from app.model import table
-
 import logging
+#from app.model import table
 
 # You may add additional parameters such as `username' and `password' if your
 # relay server requires authentication, `starttls' (boolean) or `ssl' (boolean)
 # for secure connections.
 relay_config = {'host': 'localhost', 'port': 8825}
 
-receiver_config = {'host': 'localhost', 'port': 8823}
+#receiver_config = {'host': 'localhost', 'port': 8823}
+receiver_config = {'host': '0.0.0.0', 'port': 25}
 
 #database_config = {
 #    "metadata" : table.metadata,
@@ -18,9 +18,11 @@ receiver_config = {'host': 'localhost', 'port': 8823}
 
 handlers = [
     'app.handlers.fbl',
+    'app.handlers.bounce',
     #'app.handlers.emag',
     #'app.handlers.sample',
-    #'lamson.handlers.log',
+    'lamson.handlers.log',
+    'lamson.handlers.queue',
 ]
 
 #router_defaults = {'host': '.+'}

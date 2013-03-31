@@ -3,6 +3,13 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from emag.campaign.tasks import get_campaign
 import uuid
+import re
+
+
+@task
+def handle_bounce(message, campaign_pk=None, r_index=None, host=None):
+    logger.debug('Got Bounce campaign_pk=%s r_index=%s host=%s', campaign_pk, r_index, host)
+    logger.error('TODO GET BOUNCES WORKING GNAR')
 
 
 @task
@@ -36,20 +43,37 @@ def handle_fbl(message, vendor=None, host=None):
         logger.error('Could not parse FBL as ARF: %s', e)
         return
 
-    logger.debug('original_msg=%s', original_msg)
-    logger.debug('original_msg_repr=%s', original_msg.__repr__())
+    campaign_uuid = str(original_msg.get('List-Id'))
+    m = re.match(r'^[a-f\d]{8}-([a-f\d]{4}-){3}[a-f\d]{12}$', campaign_uuid, re.IGNORECASE)
+    if not campaign_uuid or not m:
+        logger.error("FBL report original message does not contain a valid List-Id header: %s", campaign_uuid)
+        return
+    campaign_uuid = uuid.UUID(campaign_uuid)
+    logger.debug('campaign_uuid=%s', campaign_uuid)
+
+    list_index = str(original_msg.get('List-Index'))
+    # TODO This regex doesn't belong here. It will be forgotten about.
+    m = re.match(r'^([a-f\d]{8,64})-(\d{1,8})$', list_index, re.IGNORECASE)
+    if not list_index or not m:
+        logger.error("FBL report original message does not contain a valid List-Index header: %s", list_index)
+        return
+    campaign_pk, r_index = m.groups()
+    r_index = int(r_index)
+    logger.debug('campaign_pk=%s, r_index=%s', campaign_pk, r_index)
+
+    #campaign = get_campaign('emails', uuid=campaign_uuid)
+    campaign = get_campaign('emails', pk=campaign_pk)
+    r = campaign.recipients[r_index]
+    logger.info("Got FBL for Campaign %s: %s (vendor=%s)", campaign, r.email, vendor)
+    r.append_log(fbl_marked_as_spam=True, msg="FBL report from vendor: %s" % vendor)
+    campaign.save()
+
+    # TODO Finish this
+    logger.error("TODO HANDLE FBL GLOBAL BLOCK LIST GNAR")
+
+    #logger.debug('original_msg=%s', original_msg)
+    #logger.debug('original_msg_repr=%s', original_msg.__repr__())
 
     return_path = original_msg.get('Return-Path')
     message_id = original_msg.get('Message-Id')
     logger.debug('return_path=%s, message_id=%s', return_path, message_id)
-
-    campaign_uuid = original_msg.get('List-Id')
-    campaign_uuid = uuid.UUID(campaign_uuid)
-    logger.debug('campaign_uuid=%s', campaign_uuid)
-
-    campaign = get_campaign('emails', uuid=campaign_uuid)
-    logger.info("Got FBL for Campaign %s: %s", campaign, message_id)
-
-    # TODO Finish this
-    logger.error("TODO HANDLE FBL BLOCK RECIPIENTS ETC")
-    return

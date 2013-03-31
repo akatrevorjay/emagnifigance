@@ -2,7 +2,9 @@ import logging
 from lamson.routing import route, route_like, stateless
 from config.settings import relay
 from lamson import view
-from . import fbl
+
+
+#from . import fbl
 
 
 #@route_like(fbl.FBL)
@@ -22,17 +24,22 @@ from . import fbl
 #    return FBL
 
 
-#@route_like(START)
-#def NEW_USER(message, address=None, host=None):
-#    return NEW_USER
+@route("(address)@(host)")
+def START(message, address=None, host=None):
+    return START
 
 
-#@route_like(START)
-#def END(message, address=None, host=None):
-#    return NEW_USER(message, address, host)
+@route_like(START)
+def NEW_USER(message, address=None, host=None):
+    return NEW_USER
 
 
-#@route_like(START)
-#@stateless
-#def FORWARD(message, address=None, host=None):
-#    relay.deliver(message)
+@route_like(START)
+def END(message, address=None, host=None):
+    return NEW_USER(message, address, host)
+
+
+@route_like(START)
+@stateless
+def FORWARD(message, address=None, host=None):
+    relay.deliver(message)
