@@ -80,6 +80,8 @@ def queue(campaign_type, campaign_pk):
     #(group(partial(r_vars) for r_vars in campaign.get_template_vars()) | check_send_retvals.s(campaign))()
     #partial = campaign._handler.s(**t_vars)
 
+    # TODO time limit on the chord somehow, something like the max a send task
+    # can retry for, ala 3 days or something.
     (group(campaign._handler.s(r_vars, t_vars, campaign_type, campaign_pk, r_index, str(campaign.uuid))
      for r_index, r_vars in enumerate(campaign.get_template_vars()))
      | check_send_retvals.s(campaign_type, campaign_pk)
