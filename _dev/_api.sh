@@ -16,11 +16,11 @@ function api {
         !(http://*))
             base="https://emag-api.localhostsolutions.com"
             opts+="--verify no " ;;&
-        !(/*))
+        !(*/*))
             base+="/" ;;&
         !(*api/v1/*))
             base+="api/v1" ;;&
-        !(/*))
+        !(*/*))
             base+="/" ;;&
         #!(*?*))
         #    url="/$url"
