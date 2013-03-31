@@ -183,13 +183,6 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
     def dehydrate_status(self, bundle):
         return getattr(bundle.obj, 'status', None)
 
-    #user = tfields.CharField(readonly=True)
-
-    #def dehydrate_user(self, bundle):
-    #    user = getattr(bundle.obj, 'user', None)
-    #    if user:
-    #        return user.username
-
     campaign_resource_uri = tfields.CharField(readonly=True)
 
     def dehydrate_campaign_resource_uri(self, bundle):
@@ -209,22 +202,10 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
         return state
 
-    #def dehydrate(self, bundle):
-    #    ## TODO Only if listing, not if in detail
-    #    #request = getattr(bundle, 'request', None)
-    #    #if request:
-    #    #    if request.META.get('API_LIST'):
-    #    #        pass
-    #
-    #    return bundle
+    failed_recipients = tfields.ListField()
 
-    def dispatch_list(self, request, **kwargs):
-        request.META['API_LIST'] = True
-        return super(EmailCampaignStatusResource, self).dispatch_list(request, **kwargs)
-
-    #def dispatch_detail(self, request, **kwargs):
-    #    request.META['API_DETAIL'] = True
-    #    return super(EmailCampaignResource, self).dispatch_detail(request, **kwargs)
+    def dehydrate_failed_recipients(self, bundle):
+        return [dict(success=r.success, log=r.log) for r in bundle.obj.recipients if r.success is False]
 
     class Meta:
         resource_name = 'email_campaign_status'
@@ -232,41 +213,6 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
             created__gte=timezone.now() - timedelta(days=30),
         ).order_by('-created')
         excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip')
-        allowed_methods = ['get']
-        authentication = ApiKeyAuthentication()
-        authorization = PerUserReadOnlyAuthorization()
-
-
-class EmailCampaignReportResource(resources.MongoEngineResource):
-    #recipients = fields.EmbeddedListField(EmailRecipientResource, attribute='recipients', full=True)
-
-    campaign_resource_uri = tfields.CharField(readonly=True)
-
-    def dehydrate_campaign_resource_uri(self, bundle):
-        return str(self.get_resource_uri(bundle)).replace(self.Meta.resource_name, EmailCampaignResource.Meta.resource_name)
-
-    #failed_recipients = fields.EmbeddedListField(EmailRecipientResource)
-    failed_recipients = tfields.ListField()
-
-    def dehydrate_failed_recipients(self, bundle):
-        failed_recipients = []
-        for r in bundle.obj.recipients:
-            if r.success is False:
-                r = dict(success=r.success, log=r.log)
-                failed_recipients.append(r)
-        return failed_recipients
-
-    #def dehydrate(self, bundle):
-    #    return bundle
-
-    class Meta:
-        resource_name = 'email_campaign_report'
-        queryset = documents.EmailCampaign.objects.filter(
-            created__gte=timezone.now() - timedelta(days=30),
-            state__completed__exists=True,
-            recipients__success=False,
-        ).order_by('-created')
-        excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip', 'state')
         allowed_methods = ['get']
         authentication = ApiKeyAuthentication()
         authorization = PerUserReadOnlyAuthorization()
