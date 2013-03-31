@@ -4,6 +4,9 @@
 /env
 /var
 
+/public/static
+/public/media
+
 *.swp
 *.swo
 
