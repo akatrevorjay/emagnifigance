@@ -9,7 +9,8 @@ from tastypie_mongoengine import resources, fields
 from . import documents
 #from emag.campaign.api import RecipientResource, TemplateResource, CampaignResource
 #from django.conf.urls import url
-#from django.utils import timezone
+from django.utils import timezone
+from datetime import timedelta
 
 
 """
@@ -66,11 +67,11 @@ class DisallowDeleteMixIn:
         raise Unauthorized("You are not allowed to access that resource.")
 
 
-class CampaignAuthorization(PerUserAuthorizationMixIn, DisallowUpdateMixIn, DisallowDeleteMixIn, Authorization):
+class PerUserCreateReadAuthorization(PerUserAuthorizationMixIn, DisallowUpdateMixIn, DisallowDeleteMixIn, Authorization):
     pass
 
 
-class CampaignStatusAuthorization(PerUserAuthorizationMixIn, ReadOnlyAuthorization):
+class PerUserReadOnlyAuthorization(PerUserAuthorizationMixIn, ReadOnlyAuthorization):
     pass
 
 
@@ -142,7 +143,9 @@ class EmailCampaignResource(resources.MongoEngineResource):
 
     class Meta:
         resource_name = 'email_campaign'
-        queryset = documents.EmailCampaign.objects.order_by('-created')
+        queryset = documents.EmailCampaign.objects.filter(
+            created__gte=timezone.now() - timedelta(days=30),
+        ).order_by('-created')
         #allowed_methods = ('get', 'post', 'put', 'delete')
         allowed_methods = ['get', 'post']
         list_allowed_methods = ['get', 'post']
@@ -151,7 +154,7 @@ class EmailCampaignResource(resources.MongoEngineResource):
         excludes = ('slug', 'user_pk', 'state', 'user_ip')
         authentication = ApiKeyAuthentication()
         #authorization = DjangoAuthorization()
-        authorization = CampaignAuthorization()
+        authorization = PerUserCreateReadAuthorization()
         #cache = cache.NoCache()
         # TODO return only UUID of campaign
         always_return_data = True
@@ -199,6 +202,11 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
         state = getattr(bundle.obj, 'state', None)
         if state:
             state.pop('recipient_index')
+
+        success = state.get('sent_success_count', 0)
+        failure = state.get('sent_failure_count', 0)
+        state['sent_count'] = success + failure
+
         return state
 
     #def dehydrate(self, bundle):
@@ -220,9 +228,45 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
     class Meta:
         resource_name = 'email_campaign_status'
-        #queryset = documents.EmailCampaign.objects.all()
-        queryset = documents.EmailCampaign.objects.order_by('-created')
+        queryset = documents.EmailCampaign.objects.filter(
+            created__gte=timezone.now() - timedelta(days=30),
+        ).order_by('-created')
         excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip')
         allowed_methods = ['get']
         authentication = ApiKeyAuthentication()
-        authorization = CampaignStatusAuthorization()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class EmailCampaignReportResource(resources.MongoEngineResource):
+    #recipients = fields.EmbeddedListField(EmailRecipientResource, attribute='recipients', full=True)
+
+    campaign_resource_uri = tfields.CharField(readonly=True)
+
+    def dehydrate_campaign_resource_uri(self, bundle):
+        return str(self.get_resource_uri(bundle)).replace(self.Meta.resource_name, EmailCampaignResource.Meta.resource_name)
+
+    #failed_recipients = fields.EmbeddedListField(EmailRecipientResource)
+    failed_recipients = tfields.ListField()
+
+    def dehydrate_failed_recipients(self, bundle):
+        failed_recipients = []
+        for r in bundle.obj.recipients:
+            if r.success is False:
+                r = dict(success=r.success, log=r.log)
+                failed_recipients.append(r)
+        return failed_recipients
+
+    #def dehydrate(self, bundle):
+    #    return bundle
+
+    class Meta:
+        resource_name = 'email_campaign_report'
+        queryset = documents.EmailCampaign.objects.filter(
+            created__gte=timezone.now() - timedelta(days=30),
+            state__completed__exists=True,
+            recipients__success=False,
+        ).order_by('-created')
+        excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip', 'state')
+        allowed_methods = ['get']
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
