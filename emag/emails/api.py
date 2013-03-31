@@ -9,8 +9,7 @@ from tastypie_mongoengine import resources, fields
 from . import documents
 #from emag.campaign.api import RecipientResource, TemplateResource, CampaignResource
 #from django.conf.urls import url
-from django.utils import timezone
-
+#from django.utils import timezone
 
 
 """
@@ -41,25 +40,14 @@ class PerUserAuthorizationMixIn:
     def read_detail(self, object_list, bundle):
         return self._per_user_check(object_list, bundle)
 
-    #def base_checks(self, request, model_klass):
-    #    # If it doesn't look like a model, we can't check permissions.
-    #    if not model_klass or not getattr(model_klass, '_meta', None):
-    #        return False
-    #
-    #    # User must be logged in to check permissions.
-    #    if not hasattr(request, 'user'):
-    #        return False
-    #
-    #    return model_klass
 
-    #def read_list(self, object_list, bundle):
-    #    klass = self.base_checks(bundle.request, object_list.model)
-    #
-    #    if klass is False:
-    #        return []
-    #
-    #    # GET-style methods are always allowed.
-    #    return object_list
+#class DisallowReadMixIn:
+#    def read_list(self, object_list, bundle):
+#        raise Unauthorized("You are not allowed to access that resource.")
+#
+#    def read_detail(self, object_list, bundle):
+#        raise Unauthorized("You are not allowed to access that resource.")
+#        #return False
 
 
 class DisallowUpdateMixIn:
@@ -83,9 +71,8 @@ class CampaignAuthorization(PerUserAuthorizationMixIn, DisallowUpdateMixIn, Disa
 
 
 class CampaignStatusAuthorization(PerUserAuthorizationMixIn, ReadOnlyAuthorization):
-    #def read_list(self, object_list, bundle):
-    #    raise Unauthorized("You are not allowed to access that resource.")
     pass
+
 
 """
 Resources
@@ -93,11 +80,10 @@ Resources
 
 
 class EmailRecipientResource(resources.MongoEngineResource):
-#class EmailRecipientResource(RecipientResource):
     class Meta:
         object_class = documents.EmailRecipient
         #cache = cache.NoCache()
-        excludes = ('log', )
+        #excludes = ('log', )
 
 
 class EmailTemplateResource(resources.MongoEngineResource):

@@ -11,7 +11,7 @@ from django.conf import settings
 from django.utils import timezone
 import time
 #import emag.emails.tasks
-from emag.campaign.tasks import handle_template
+from emag.campaign.tasks import handle_template, get_campaign
 
 
 
@@ -82,9 +82,6 @@ class Handle_Email(Task):
         ]
 
     def run(self, r_vars, t_vars, campaign_type, campaign_pk, r_index, campaign_uuid):
-        #campaign = get_campaign(campaign_type, campaign_pk)
-        #r = campaign.recipients[r_index]
-
         recipient = r_vars['email']
         recipient_address = r_vars['email_address']
         sender = t_vars['sender']
@@ -139,9 +136,18 @@ class Handle_Email(Task):
 
         #from gevent.dns import DNSError
 
+        campaign = get_campaign(campaign_type, campaign_pk)
+        r = campaign.recipients[r_index]
+
         ret = False
         try:
             ret = self.relay.attempt(envelope, attempts)
+
+            # TODO Get real reply smtp_msg for success
+            r.append_log(success=True, smtp_msg='200 OK')
+            campaign.incr_success_count()
+            campaign.save()
+
         #except ConnectionLost, e:
         #except Exception, e:
         #except (SlimtaError, ConnectionLost, BadReply, DNSError), e:
@@ -166,8 +172,10 @@ class Handle_Email(Task):
 
             if error_code:
                 error_code_msg = 'error code %s' % error_code
+                r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='%s' % e.reply)
             else:
                 error_code_msg = 'unknown error'
+                r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='000 Unknown error: %s' % e)
 
             logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, e)
 
@@ -179,6 +187,7 @@ class Handle_Email(Task):
                 countdown = step + (step * attempts)
                 # TODO record this message as the log in the recipient log
                 logger.warning('Retrying in %ds', countdown)
+                campaign.save()
                 raise self.retry(countdown=countdown, exc=e)
             else:
                 if bounce:
@@ -189,6 +198,10 @@ class Handle_Email(Task):
                     # We've reached our retry count, pfft
                     error_msg = 'Past retry count'
                 logger.error('Not retrying: %s.', error_msg)
+
+                # Increase campaign fail count, as we're giving up
+                campaign.incr_failure_count()
+                campaign.save()
                 return False
                 #raise e
 

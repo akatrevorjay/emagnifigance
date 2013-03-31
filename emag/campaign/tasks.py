@@ -115,15 +115,15 @@ def check_send_retvals(rvs, campaign_type, campaign_pk):
         if rv:
             # TODO This probably belongs in the handle function
             # TODO MTA response goes here
-            r.append_log(success=True, smtp_msg='200 Fake OK')
-            campaign.incr_success_count()
+            #r.append_log(success=True, smtp_msg='200 Fake OK')
+            #campaign.incr_success_count()
 
             logger.debug("Campaign '%s': Was able to send message to '%s'", campaign, r)
         else:
             # TODO This probably belongs in the handle function
             # TODO MTA response goes here (bounceback, etc)
-            r.append_log(success=False, smtp_msg='400 Fake Try Again Later')
-            campaign.incr_failure_count()
+            #r.append_log(success=False, smtp_msg='400 Fake Try Again Later')
+            #campaign.incr_failure_count()
 
             # TODO Put error in DB, possibly email as bad depending on error
             logger.error("Campaign '%s': Was not able to send message to '%s'", campaign, r)
