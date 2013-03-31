@@ -17,7 +17,7 @@ def do_email():
 
     cur_type = 'Email'
     try:
-        ec = EmailCampaign.objects.get(name=TEST_NAME % cur_type)
+        ec = EmailCampaign.objects.get(name=TEST_NAME % cur_type, user_pk=u_trevorj.pk)
     except EmailCampaign.DoesNotExist:
         ec = EmailCampaign(name=TEST_NAME % cur_type, user_pk=u_trevorj.pk)
         for i in xrange(1):
