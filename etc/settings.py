@@ -84,7 +84,7 @@ MEDIA_URL = '/media/'
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/var/www/example.com/static/"
 #STATIC_ROOT = ''
-STATIC_ROOT = '%s/public/static2/' % TOP_DIR
+STATIC_ROOT = '%s/public/static/' % TOP_DIR
 
 # URL prefix for static files.
 # Example: "http://example.com/static/", "http://static.example.com/"
@@ -257,18 +257,23 @@ SESSION_COOKIE_NAME = PROJECT_NAME + '_sess'
 #
 
 INSTALLED_APPS += (
-    ## Third party libs
-    #'south',
-    #'djsupervisor',
-
-    ##'sentry',
-    ##'raven.contrib.django',
-    #'breadcrumbs',
-    #'jsonify',
-
     'tastypie',
     'tastypie_mongoengine',
-    ##'backbone_tastypie',
+    #'backbone_tastypie',
+)
+
+#
+# Sentry/Raven
+#
+
+# Set your DSN value
+RAVEN_CONFIG = {
+    'dsn': 'http://ce2b44a8ed814e289fac450b56899d19:27f1fe208bfa481092bc3bfb6026b01c@10.13.37.184:9000/2',
+}
+
+# Add raven to the list of installed apps
+INSTALLED_APPS = INSTALLED_APPS + (
+    'raven.contrib.django.raven_compat',
 )
 
 #
