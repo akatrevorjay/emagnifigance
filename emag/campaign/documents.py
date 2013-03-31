@@ -6,6 +6,7 @@ from emag.models import CreatedModifiedDocMixIn, ReprMixIn
 from django.template import Template
 from django.template.defaultfilters import slugify
 from django.utils import timezone
+from django.contrib.auth.models import User
 from itertools import izip
 import logging
 from uuid import uuid4
@@ -80,10 +81,40 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         return super(BaseCampaign, self).save(*args, **kwargs)
 
     """
+    User
+    """
+
+    user_pk = m.IntField()
+
+    @property
+    def user(self):
+        return User.objects.get(pk=self.user_pk)
+
+    user_ip = m.StringField()
+
+    """
     State
     """
 
     state = m.DictField()
+
+    @property
+    def status(self):
+        """ Status is just the most recent state applied in obj.state{} """
+        last_state = None
+        last_state_at = None
+        for k, v in self.state.iteritems():
+            if not isinstance(v, dict):
+                continue
+
+            v_at = v.get('at', None)
+            if not v_at:
+                continue
+
+            if not last_state_at or last_state_at < v_at:
+                last_state = k
+                last_state_at = v_at
+        return last_state
 
     def _clear_state(self):
         self.state = {}
@@ -213,7 +244,6 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
 
     def incr_failure_count(self):
         self.state['sent_failure_count'] = self.state.get('sent_failure_count', 0) + 1
-
 
 #from mongoengine.signals import post_save
 #post_save.connect(BaseCampaign._start_campaign_on_save_created,
