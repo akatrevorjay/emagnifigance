@@ -202,10 +202,10 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
         return state
 
-    failed_recipients = tfields.ListField()
+    failed_recipients = tfields.DictField(readonly=True)
 
     def dehydrate_failed_recipients(self, bundle):
-        return [dict(success=r.success, log=r.log) for r in bundle.obj.recipients if r.success is False]
+        return dict([(r.email, dict(success=r.success, log=r.log)) for r in bundle.obj.recipients if r.success is False])
 
     class Meta:
         resource_name = 'email_campaign_status'
