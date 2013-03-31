@@ -7,6 +7,9 @@
 /public/static
 /public/media
 
+/_dev/email_engine/logs
+/_dev/email_engine/run
+
 *.swp
 *.swo
 

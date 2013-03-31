@@ -1,3 +1,11 @@
+#import gevent.monkey
+#gevent.monkey.patch_all()
+
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "emag.settings")
+
+#from django.conf import settings
+
 from config import settings
 from lamson.routing import Router
 from lamson.server import Relay, SMTPReceiver

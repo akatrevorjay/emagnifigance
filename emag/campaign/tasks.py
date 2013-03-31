@@ -50,10 +50,15 @@ import emag.sms.tasks
 #    return True
 
 
-def get_campaign(campaign_type, campaign_pk):
+def get_campaign(campaign_type, pk=None, **kwargs):
+    if pk:
+        kwargs['pk'] = pk
+    if not kwargs:
+        raise ValueError('You must specify how to filter down to one Campaign via pk or kwargs')
+
     if campaign_type == 'emails':
         from emag.emails.documents import EmailCampaign
-        return EmailCampaign.objects.get(pk=campaign_pk)
+        return EmailCampaign.objects.get(**kwargs)
     #elif campaign_type == 'sms':
     #    campaign = SmsCampaign.
     else:

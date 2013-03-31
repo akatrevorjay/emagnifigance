@@ -1,18 +1,17 @@
 #from celery import task, Task
 #from celery.utils.log import get_task_logger
 #logger = get_task_logger(__name__)
-from django.core import mail
-from celery import task, chord, group, chunks, Task
+#from django.core import mail
+from celery import task, Task
 #from celery import group, subtask, group, chain
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
-from django.template import Context
+#from django.template import Context
 from django.conf import settings
-from django.utils import timezone
+#from django.utils import timezone
 import time
 #import emag.emails.tasks
 from emag.campaign.tasks import handle_template, get_campaign
-
 
 
 """
@@ -26,17 +25,19 @@ def test_mass_send():
 """
 
 
+"""
 def send_email(recipient, body, subject, sender):
     return mail.send_mail(subject, body, sender, [recipient])
+"""
 
-
-from slimta.envelope import Envelope
-from slimta.relay.smtp.mx import MxSmtpRelay
 
 import email
 import email.message
 from email.message import Message
 import email.parser
+
+from slimta.envelope import Envelope
+from slimta.relay.smtp.mx import MxSmtpRelay
 
 from slimta.core import SlimtaError
 #from slimta.smtp import ConnectionLost, BadReply
@@ -49,37 +50,36 @@ from slimta.policy.headers import AddDateHeader, AddMessageIdHeader, AddReceived
 
 
 class Handle_Email(Task):
-    #_relay = None
+    _relay = None
 
-    #@property
-    #def relay(self):
-    #    if not self._relay:
-    #        self._relay = MxSmtpRelay(pool_size=2,
-    #                                  #tls=tls,
-    #                                  ehlo_as='emag-dev.trevorj.local',
-    #                                  connect_timeout=20.0,
-    #                                  command_timeout=10.0,
-    #                                  data_timeout=20.0,
-    #                                  idle_timeout=10.0,
-    #                                  )
-    #    return self._relay
+    @property
+    def relay(self):
+        if not self._relay:
+            self._relay = MxSmtpRelay(
+                pool_size=2,
+                #tls=tls,
+                ehlo_as=settings.SERVER_NAME,
+                connect_timeout=20.0,
+                command_timeout=10.0,
+                data_timeout=20.0,
+                idle_timeout=10.0,
+            )
+        return self._relay
+
+    _policies = None
+
+    @property
+    def policies(self):
+        if not self._policies:
+            self._policies = [
+                AddDateHeader(),
+                AddMessageIdHeader(hostname=settings.SERVER_NAME),
+                AddReceivedHeader(),
+            ]
+        return self._policies
 
     def __init__(self):
         Task.__init__(self)
-        self.relay = MxSmtpRelay(
-            pool_size=2,
-            #tls=tls,
-            ehlo_as=settings.SERVER_NAME,
-            connect_timeout=20.0,
-            command_timeout=10.0,
-            data_timeout=20.0,
-            idle_timeout=10.0,
-        )
-        self.policies = [
-            AddDateHeader(),
-            AddMessageIdHeader(hostname=settings.SERVER_NAME),
-            AddReceivedHeader(),
-        ]
 
     def run(self, r_vars, t_vars, campaign_type, campaign_pk, r_index, campaign_uuid):
         recipient = r_vars['email']
@@ -102,6 +102,9 @@ class Handle_Email(Task):
         #message['List-Id'] = str(campaign.uuid)
         message['List-Id'] = campaign_uuid
         #message['List-Unsubscribe'] = None
+
+        # TODO Fix this, this is dirty and is a quick hack
+        message['Return-Path'] = 'bounce-%s-%s@emagnifigance.net' % (campaign_pk, r_index)
 
         message['From'] = sender
         message['To'] = recipient

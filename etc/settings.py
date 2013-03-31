@@ -461,15 +461,17 @@ TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
 #    CELERY_SEND_TASK_SENT_EVENT = True
 #    CELERY_TRACK_STARTED = True
 
-## Extra task modules (def=INSTALLED_APPS.tasks)
-#CELERY_IMPORTS = (
-#    # Enable HTTP dispatch task (http://celery.github.com/celery/userguide/remote-tasks.html)
-#    'celery.task.http',
-#)
+# Extra task modules (def=INSTALLED_APPS.tasks)
+CELERY_IMPORTS = (
+    ## Enable HTTP dispatch task (http://celery.github.com/celery/userguide/remote-tasks.html)
+    #'celery.task.http',
+    'emag.emails.tasks2',
+)
 
 CELERY_ROUTES = {
     'emag.campaign.tasks.queue': {'queue': 'campaigns'},
     'emag.emails.tasks.Handle_Email': {'queue': 'emails'},
+    'emag.emails.tasks2.handle_fbl': {'queue': 'emails'},
     'emag.campaign.tasks.handle_sms': {'queue': 'sms'},
 }
 
