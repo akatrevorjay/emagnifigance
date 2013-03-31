@@ -1,0 +1,2 @@
+#!/bin/bash
+./bin/env ./manage.py runserver --traceback "$@" 0.0.0.0:81
