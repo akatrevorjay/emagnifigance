@@ -147,6 +147,16 @@ INSTALLED_APPS = (
     'django.contrib.admindocs',
 )
 
+
+#
+# Sentry/Raven
+#
+RAVEN_CONFIG = {
+    'dsn': 'http://ce2b44a8ed814e289fac450b56899d19:27f1fe208bfa481092bc3bfb6026b01c@10.13.37.184:9000/2',
+}
+INSTALLED_APPS += ('raven.contrib.django.raven_compat', )
+
+
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
 # the site admins on every HTTP 500 error when DEBUG=False.
@@ -156,7 +166,8 @@ LOGGING = {
     'version': 1,
     'root': {
         'level': 'DEBUG',
-        'handlers': ['console'],
+        #'handlers': ['console'],
+        'handlers': ['console', 'sentry'],
     },
     'disable_existing_loggers': False,
     'formatters': {
@@ -188,9 +199,19 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
-        }
+        },
+        'sentry': {
+            'level': 'ERROR',
+            'class': 'raven.handlers.logging.SentryHandler',
+            'dsn': RAVEN_CONFIG['dsn'],
+        },
     },
     'loggers': {
+        #'': {
+        #    'handlers': ['console', 'sentry'],
+        #    'level': 'DEBUG',
+        #    'propagate': False,
+        #},
         'django.db': {
             'level': 'INFO',
             'propagate': True,
@@ -260,20 +281,6 @@ INSTALLED_APPS += (
     'tastypie',
     'tastypie_mongoengine',
     #'backbone_tastypie',
-)
-
-#
-# Sentry/Raven
-#
-
-# Set your DSN value
-RAVEN_CONFIG = {
-    'dsn': 'http://ce2b44a8ed814e289fac450b56899d19:27f1fe208bfa481092bc3bfb6026b01c@10.13.37.184:9000/2',
-}
-
-# Add raven to the list of installed apps
-INSTALLED_APPS = INSTALLED_APPS + (
-    'raven.contrib.django.raven_compat',
 )
 
 #
