@@ -14,6 +14,29 @@ from uuid import uuid4
 from . import tasks
 
 
+#class StatsDocument(ReprMixIn, m.DynamicDocument):
+#    pass
+
+
+#class Stats(object):
+#    def record(self):
+#        pass
+
+#    def apply(self):
+#        pass
+
+
+#class StatsPerDestinationDomain(BaseStats):
+#    def on_campaign_email_send(self, success=None, recipients=None):
+#        if not recipients:
+#            raise Exception('No recipients specified')
+
+#        for r in recipients:
+#            r_address, r_domain = r.split('@', 1)
+#            if
+#            self.domains[r_domain]
+
+
 class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     meta = dict(abstract=True)
 
@@ -231,16 +254,13 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):
-        logging.debug("Post Save: %s" % document.name)
-        if 'created' in kwargs:
-            if kwargs['created']:
-                logging.debug("Created")
-                logging.info("Starting Campaign %s", document)
+        if kwargs.get('created', None):
+            logging.debug("Post Save: %s: Created", document)
+            logging.info("Starting Campaign %s", document)
+            if not document.is_started:
                 document.start()
-            else:
-                logging.debug("Updated")
-        #if not document.is_started:
-        #    document.start()
+        else:
+            logging.debug("Post Save: %s: Updated", document)
 
     def incr_success_count(self):
         self.state['sent_success_count'] = self.state.get('sent_success_count', 0) + 1
