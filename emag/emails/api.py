@@ -126,9 +126,11 @@ class EmailCampaignResource(resources.MongoEngineResource):
             bundle.data.pop(exclude, None)
 
         if not bundle.obj.pk:
-            user = getattr(bundle.obj, 'user', None)
+            user = getattr(bundle.request, 'user', None)
             if user:
                 bundle.obj.user_pk = user.pk
+            else:
+                raise ValueError('Cannot determine current user PK')
             bundle.obj.user_ip = bundle.request.META.get('REMOTE_ADDR')
 
         return bundle
