@@ -4,19 +4,22 @@ import emag.emails.documents as em
 from emag.emails.documents import EmailRecipient, EmailTemplate, EmailCampaign
 import emag.sms.documents as sm
 from emag.sms.documents import SmsRecipient, SmsTemplate, SmsCampaign
+from django.contrib.auth.models import User
 
 TEST_NAME = 'Test %s Campaign'
 TEST_DESC = 'Testing of %s Campaign'
 
+u_trevorj = User.objects.get(username='trevorj')
+
 
 def do_email():
-    global EmailRecipient, EmailTemplate, EmailCampaign, TEST_NAME, TEST_DESC
+    global EmailRecipient, EmailTemplate, EmailCampaign, TEST_NAME, TEST_DESC, u_trevorj
 
     cur_type = 'Email'
     try:
         ec = EmailCampaign.objects.get(name=TEST_NAME % cur_type)
     except EmailCampaign.DoesNotExist:
-        ec = EmailCampaign(name=TEST_NAME % cur_type)
+        ec = EmailCampaign(name=TEST_NAME % cur_type, user_pk=u_trevorj.pk)
         for i in xrange(1):
             ec.recipients.append(
                 #EmailRecipient(email='trevorj%d@ctmsohio.com' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),

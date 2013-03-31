@@ -88,7 +88,10 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
 
     @property
     def user(self):
-        return User.objects.get(pk=self.user_pk)
+        if self.user_pk:
+            return User.objects.get(pk=self.user_pk)
+        else:
+            return None
 
     user_ip = m.StringField()
 
