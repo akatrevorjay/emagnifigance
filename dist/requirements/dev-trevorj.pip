@@ -1,3 +1,4 @@
+BeautifulSoup==3.2.1
 Cython==0.16
 Django==1.5.1
 Flask==0.9
@@ -32,21 +33,29 @@ celerymon==1.0.3
 chardet==2.1.1
 configobj==4.7.2
 constants==0.5.0
+cssutils==0.9.10b1
 defusedxml==0.4.1
 distribute==0.6.35
-django-celery==3.0.11
+django-celery==3.0.17
+django-crispy-forms==1.2.3
 django-debug-toolbar==0.9.4
 django-debug-toolbar-mongo==0.1.5
 django-devserver==0.4.0
 django-extensions==1.0.0
 -e git+https://github.com/alex/django-filter.git@a152e2ed2ce4129c9d8dcdbb7c880773f25879c7#egg=django_filter-dev
+django-indexer==0.3.0
 django-mailchimp-v1.3==1.3.0
 django-mongoforms==0.3
 django-nose==1.1
+django-paging==0.2.4
 django-phonenumber-field==0.2a3
-django-picklefield==0.2.1
+django-picklefield==0.3.0
+django-social-auth==0.7.22
+django-social-auth-trello==1.0.3
+django-static-compiler==0.3.1
 django-tastypie==0.9.14
 django-tastypie-mongoengine==0.4
+django-templatetag-sugar==0.1
 -e git://github.com/rdegges/django-twilio.git@ef623c366ce9b65eeac25a5646b747471b9c273b#egg=django_twilio-dev
 django-uuidfield==0.4.0
 djangorestframework==2.2.1
@@ -57,8 +66,10 @@ fuzzywuzzy==0.1
 -e git://github.com/SiteSupport/gevent.git@7121c18adb95a918a5bf574ac32a57c6984e80fe#egg=gevent-dev
 gevent-subprocess==0.1.1
 greenlet==0.4.0
+gunicorn==0.17.2
+httpagentparser==1.2.2
 httpie==0.4.1
-httplib2==0.7.7
+httplib2==0.8
 ipdb==0.7
 ipython==0.13.1
 jedi==0.5b5
@@ -71,13 +82,16 @@ lazr.uri==1.0.3
 lettuce==0.2.10
 librabbitmq==1.0.1
 lockfile==0.9.1
+logan==0.5.5
 lxml==3.1.1
 mimeparse==0.1.3
 mock==1.0.1
 mongoengine==0.7.9
 msgpack-python==0.1.10
 nose==1.2.1
+nydus==0.10.5
 oauth==1.0.1
+oauth2==1.5.211
 paramiko==1.7.7.1
 phonenumbers==5.3b1
 pyOpenSSL==0.13
@@ -86,22 +100,27 @@ pycrypto==2.6
 pyinotify==0.9.4
 pylibmc==1.2.3
 pymongo==2.5
+pynliner==0.4.0
 pyserial==2.5
 python-apt==0.8.7ubuntu4
 python-daemon==1.6
-python-dateutil==2.1
+python-dateutil==1.5
 python-debian==0.1.21-nmu2ubuntu1
 -e git://github.com/dherbst/python-icontact.git@9d23befeb3f232b48c13a3eb10e17359df9627fc#egg=python_icontact-dev
 python-memcached==1.48
 python-modargs==1.6
+python-openid==2.2.5
 -e git://github.com/icgood/python-slimta.git@4cc681705a39b0585e29569fd2412b4336985d50#egg=python_slimta-dev
 python-slimta-celeryqueue==0.1.0
 python-slimta-diskstorage==0.1.0
 python-slimta-maildrop==0.1.0
 pytz==2013b
 pyzmq==2.2.0.1
+raven==3.2.1
+redis==2.7.2
 requests==1.1.0
-simplejson==2.6.1
+setproctitle==1.1.7
+simplejson==3.1.2
 six==1.3.0
 sure==1.0.6
 threadpool==1.2.7
