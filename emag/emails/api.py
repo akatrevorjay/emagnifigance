@@ -119,6 +119,11 @@ class EmailCampaignResource(resources.MongoEngineResource):
         if user:
             return user.username
 
+    status_resource_uri = tfields.CharField(readonly=True)
+
+    def dehydrate_status_resource_uri(self, bundle):
+        return str(self.get_resource_uri(bundle)).replace(self.Meta.resource_name, EmailCampaignStatusResource.Meta.resource_name)
+
     def dehydrate(self, bundle):
         # Remove recipients and template, but only if listing (ie leave on
         # detail)
@@ -151,7 +156,7 @@ class EmailCampaignResource(resources.MongoEngineResource):
 
     class Meta:
         resource_name = 'email_campaign'
-        queryset = documents.EmailCampaign.objects.all()
+        queryset = documents.EmailCampaign.objects.order_by('-created')
         #allowed_methods = ('get', 'post', 'put', 'delete')
         allowed_methods = ['get', 'post']
         list_allowed_methods = ['get', 'post']
@@ -189,21 +194,26 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
     def dehydrate_status(self, bundle):
         return getattr(bundle.obj, 'status', None)
 
-    user = tfields.CharField(readonly=True)
+    #user = tfields.CharField(readonly=True)
 
-    def dehydrate_user(self, bundle):
-        user = getattr(bundle.obj, 'user', None)
-        if user:
-            return user.username
+    #def dehydrate_user(self, bundle):
+    #    user = getattr(bundle.obj, 'user', None)
+    #    if user:
+    #        return user.username
 
-    def dehydrate(self, bundle):
-        ## TODO Only if listing, not if in detail
-        #request = getattr(bundle, 'request', None)
-        #if request:
-        #    if request.META.get('API_LIST'):
-        #        pass
+    campaign_resource_uri = tfields.CharField(readonly=True)
 
-        return bundle
+    def dehydrate_campaign_resource_uri(self, bundle):
+        return str(self.get_resource_uri(bundle)).replace(self.Meta.resource_name, EmailCampaignResource.Meta.resource_name)
+
+    #def dehydrate(self, bundle):
+    #    ## TODO Only if listing, not if in detail
+    #    #request = getattr(bundle, 'request', None)
+    #    #if request:
+    #    #    if request.META.get('API_LIST'):
+    #    #        pass
+
+    #    return bundle
 
     def dispatch_list(self, request, **kwargs):
         request.META['API_LIST'] = True
@@ -215,7 +225,8 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
     class Meta:
         resource_name = 'email_campaign_status'
-        queryset = documents.EmailCampaign.objects.all()
+        #queryset = documents.EmailCampaign.objects.all()
+        queryset = documents.EmailCampaign.objects.order_by('-created')
         excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip')
         allowed_methods = ['get']
         authentication = ApiKeyAuthentication()
