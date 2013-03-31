@@ -202,10 +202,20 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
         return state
 
-    failed_recipients = tfields.DictField(readonly=True)
+    # GRR Invalid tag name on XML
+    #failed_recipients = tfields.DictField(readonly=True)
+    #
+    #def dehydrate_failed_recipients(self, bundle):
+    #    return dict([(r.split_envelope()[1], dict(success=r.success, log=r.log))
+    #                 for r in bundle.obj.recipients
+    #                 if r.success is False])
+
+    failed_recipients = tfields.ListField(readonly=True)
 
     def dehydrate_failed_recipients(self, bundle):
-        return dict([(r.email, dict(success=r.success, log=r.log)) for r in bundle.obj.recipients if r.success is False])
+        return [dict(email=r.email, log=r.log)
+                for r in bundle.obj.recipients
+                if r.success is False]
 
     class Meta:
         resource_name = 'email_campaign_status'
