@@ -1,6 +1,16 @@
+#import gevent.monkey
+#gevent.monkey.patch_all()
+
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "emag.settings")
+
+#from django.conf import settings
+
 # This file contains python variables that configure Lamson for email processing.
 import logging
 #from app.model import table
+
+fqdn = 'mx20.emagnifigance.net'
 
 # You may add additional parameters such as `username' and `password' if your
 # relay server requires authentication, `starttls' (boolean) or `ssl' (boolean)
@@ -19,11 +29,21 @@ receiver_config = {'host': '0.0.0.0', 'port': 25}
 handlers = [
     'app.handlers.fbl',
     'app.handlers.bounce',
-    #'app.handlers.emag',
+    'app.handlers.admin',
     #'app.handlers.sample',
-    'lamson.handlers.log',
-    'lamson.handlers.queue',
+    #'lamson.handlers.log',
+    #'lamson.handlers.queue',
+    #'app.handlers.reject',
 ]
+
+from lamson.queue import Queue
+
+abuse_queue = Queue("run/abuse")
+fbl_queue = Queue("run/fbl")
+bounce_queue = Queue("run/bounce")
+
+#receiver_queue_config = {'queue': 'run/posts', 'sleep': 10}
+#receiver_queue_handlers = []
 
 #router_defaults = {'host': '.+'}
 emag_domain = 'emagnifigance\.net'
