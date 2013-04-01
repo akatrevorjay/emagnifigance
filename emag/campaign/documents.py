@@ -137,10 +137,11 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
 
     def save(self, *args, **kwargs):
         # Automagic slug generation
-        if not self.slug:
+        if not self.pk:
+        #if not self.slug:
             self.slug = slugify(self.name)
         # Automagic uuid generation
-        if not self.uuid:
+        #if not self.uuid:
             self.uuid = uuid4()
 
         #for r in self.recipients:

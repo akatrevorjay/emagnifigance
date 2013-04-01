@@ -80,11 +80,65 @@ Resources
 """
 
 
-class EmailRecipientResource(resources.MongoEngineResource):
+class LogEntryResource(resources.MongoEngineResource):
     class Meta:
+        resource_name = 'log_entry'
+        queryset = documents.cmodels.LogEntry.objects.all()
+
+        allowed_methods = ['get']
+
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class RecipientLogEntryResource(LogEntryResource):
+    class Meta:
+        resource_name = 'recipient_log_entry'
+        queryset = documents.cmodels.RecipientLogEntry.objects.all()
+
+        allowed_methods = ['get']
+
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class EmailRecipientStatusResource(resources.MongoEngineResource):
+    #log = fields.ReferencedListField(documents.cmodels.RecipientLogEntry, attribute='log', readonly=True)
+
+    class Meta:
+        resource_name = 'email_recipient_status'
+        queryset = documents.EmailRecipientStatus.objects.all()
+        #object_class = documents.EmailRecipientStatus
+        #cache = cache.NoCache()
+        #excludes = ('log', )
+
+        allowed_methods = ['get']
+
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class EmailRecipientResource(resources.MongoEngineResource):
+    #status = fields.ReferenceField(documents.EmailRecipientStatus, attribute='status', readonly=True)
+    #status = fields.EmbeddedDocumentField(EmailRecipientStatusResource, '_status', readonly=True)
+    #status = fields.EmbeddedDocumentField(documents.EmailRecipientStatus, '_status')
+
+    #def dehydrate_status(self, bundle):
+    #    return bundle.obj.status
+    #    #EmailRecipientStatusResource(bundle.obj.status)
+
+    #log = fields.ReferencedListField(RecipientLogEntryResource, attribute='log', readonly=True)
+
+    #def dehydrate(self, bundle):
+    #    #if '_status' in bundle.data:
+    #    #    bundle.data['status'] = bundle.data.pop('_status')
+    #    return bundle
+
+    class Meta:
+        resource_name = 'email_recipient'
         object_class = documents.EmailRecipient
         #cache = cache.NoCache()
-        excludes = ('log', )
+        excludes = ('_status', )
 
 
 class EmailTemplateResource(resources.MongoEngineResource):
@@ -95,18 +149,25 @@ class EmailTemplateResource(resources.MongoEngineResource):
 
 
 class EmailCampaignResource(resources.MongoEngineResource):
-    template = fields.EmbeddedDocumentField(embedded=EmailTemplateResource, attribute='template')
+    template = fields.EmbeddedDocumentField(EmailTemplateResource, attribute='template')
     recipients = fields.EmbeddedListField(EmailRecipientResource, attribute='recipients', full=True)
     #recipients = fields.EmbeddedListField(EmailRecipientResource, attribute='recipients')
 
+    id = tfields.CharField(readonly=True)
+    uuid = tfields.CharField(readonly=True)
     user = tfields.CharField(readonly=True)
+    status_resource_uri = tfields.CharField(readonly=True)
+
+    def dehydrate_id(self, bundle):
+        return bundle.obj.pk
+
+    def dehydrate_uuid(self, bundle):
+        return bundle.obj.uuid
 
     def dehydrate_user(self, bundle):
         user = getattr(bundle.obj, 'user', None)
         if user:
             return user.username
-
-    status_resource_uri = tfields.CharField(readonly=True)
 
     def dehydrate_status_resource_uri(self, bundle):
         return str(self.get_resource_uri(bundle)).replace(self.Meta.resource_name, EmailCampaignStatusResource.Meta.resource_name)
@@ -148,15 +209,16 @@ class EmailCampaignResource(resources.MongoEngineResource):
         queryset = documents.EmailCampaign.objects.filter(
             created__gte=timezone.now() - timedelta(days=30),
         ).order_by('-created')
-        #allowed_methods = ('get', 'post', 'put', 'delete')
+        excludes = ('slug', 'user_pk', 'state', 'user_ip')
+
         allowed_methods = ['get', 'post']
         list_allowed_methods = ['get', 'post']
         detail_allowed_methods = ['get']
 
-        excludes = ('slug', 'user_pk', 'state', 'user_ip')
         authentication = ApiKeyAuthentication()
         #authorization = DjangoAuthorization()
         authorization = PerUserCreateReadAuthorization()
+
         #cache = cache.NoCache()
         # TODO return only UUID of campaign
         always_return_data = True
@@ -196,7 +258,7 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
     def dehydrate_state(self, bundle):
         state = getattr(bundle.obj, 'state', None)
         if state:
-            state.pop('recipient_index')
+            state.pop('recipient_index', None)
 
         success = state.get('sent_success_count', 0)
         failure = state.get('sent_failure_count', 0)
@@ -216,7 +278,9 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
     def dehydrate_failed_recipients(self, bundle):
         # TODO Also show FBL hits
-        return [dict(email=r.email, log=r.log)
+        #return [dict(email=r.email, log=[l._data for l in r.log if not l.success])
+        #return [dict(email=r.email, log=r.log)
+        return [dict(email=r.email)
                 for r in bundle.obj.recipients
                 if r.success is False]
 
@@ -226,6 +290,7 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
             created__gte=timezone.now() - timedelta(days=30),
         ).order_by('-created')
         excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip')
+
         allowed_methods = ['get']
         authentication = ApiKeyAuthentication()
         authorization = PerUserReadOnlyAuthorization()
