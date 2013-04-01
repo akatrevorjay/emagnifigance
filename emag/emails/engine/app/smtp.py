@@ -7,7 +7,7 @@ from lamson.server import SMTPReceiver
 from config.settings import fqdn
 
 
-__version__ = 'Emag SMTPd version 0.2'
+__version__ = 'EMag SMTPd version 0.2'
 
 
 class EMagSMTPChannel(SMTPChannel):
