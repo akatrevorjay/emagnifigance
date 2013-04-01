@@ -14,38 +14,55 @@ from uuid import uuid4
 from . import tasks
 
 
-#class StatsDocument(ReprMixIn, m.DynamicDocument):
-#    pass
+class LogEntry(ReprMixIn, CreatedModifiedDocMixIn, m.DynamicDocument):
+    _repr_vars = ['at', 'success', 'msg']
+    meta = dict(allow_inheritance=True)
+
+    #level = m.IntField()
+    #msg = m.StringField()
 
 
-#class Stats(object):
-#    def record(self):
-#        pass
+class RecipientLogEntry(LogEntry):
+    _repr_vars = LogEntry._repr_vars + ['smtp_msg']
 
-#    def apply(self):
-#        pass
+    #recipient_status = m.ReferenceField(RecipientStatus, dbref=False)
+    #smtp_code = m.IntegerField()
+    #smtp_msg = m.StringField()
 
 
-#class StatsPerDestinationDomain(BaseStats):
-#    def on_campaign_email_send(self, success=None, recipients=None):
-#        if not recipients:
-#            raise Exception('No recipients specified')
+class BaseRecipientStatus(ReprMixIn, CreatedModifiedDocMixIn, m.Document):
+    meta = dict(abstract=True)
 
-#        for r in recipients:
-#            r_address, r_domain = r.split('@', 1)
-#            if
-#            self.domains[r_domain]
+    # TODO Reverse delete type set and dbref=
+    log = m.ListField(m.ReferenceField(RecipientLogEntry, dbref=False))
+    #state = m.DictField()
+    status = m.StringField(regex=r'^\w+$', max_length=64)
+    user_status = m.DictField()
+
+    @property
+    def is_blocked(self, user=None):
+        ret = self.status == 'blocked'
+        if not ret and user:
+            user_status = self.user_status.get(user.pk)
+            if user_status and user_status == 'blocked':
+                ret = True
+        return ret
+
+    def append_log(self, entry_obj=None, **kwargs):
+        if not entry_obj:
+            if 'at' not in kwargs:
+                kwargs['at'] = timezone.now()
+            entry_obj = RecipientLogEntry(**kwargs)
+        assert not entry_obj.pk
+        entry_obj.save()
+        self.log.append(entry_obj)
+        self.save()
 
 
 class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     meta = dict(abstract=True)
-
     context = m.DictField()
-
-    #log = m.ListField(m.DictField())
-    log = m.ListField()
-    #log = m.DictField()
-
+    #log = m.ListField()
     success = m.BooleanField()
 
     def get_template_vars(self):
@@ -54,14 +71,39 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
         )
         return ret
 
+    @property
+    def log(self):
+        return self.status.log
+
     def append_log(self, **kwargs):
-        if 'at' not in kwargs:
-            kwargs['at'] = timezone.now()
-        self.log.append(kwargs)
+        kwargs['campaign'] = self._instance.pk
+        self.status.append_log(**kwargs)
 
         success = kwargs.get('success')
         if success is not None and self.success != success:
             self.success = success
+
+    """
+    RecipientStatus
+    """
+
+    #def r_status(self):
+    #    pass
+
+    #r_status = m.ReferenceField(EmailRecipientStatus, dbref=False)
+
+    #def save(self, *args, **kwargs):
+    #    """Overrides save to make sure self._status_cls instance exists"""
+    #    if self.validate():
+    #        if not self.r_status:
+    #            self.r_status, created = self._r_status_get_or_create()
+    #    # Not on embedded documents
+    #    #return super(BaseRecipient, self).save(*args, **kwargs)
+
+    #@property
+    #def log_entries(self):
+    #    # TODO filter for this campaign
+    #    return self.status.log_entries
 
 
 class BaseTemplate(ReprMixIn, m.EmbeddedDocument):
@@ -100,6 +142,9 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         # Automagic uuid generation
         if not self.uuid:
             self.uuid = uuid4()
+
+        #for r in self.recipients:
+        #    r.save()
 
         return super(BaseCampaign, self).save(*args, **kwargs)
 
@@ -214,7 +259,7 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     Template
     """
 
-    #template = m.ReferenceField(Template)
+    #template = m.ReferenceField(Template, dbref=False)
 
     """
     Type

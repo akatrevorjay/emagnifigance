@@ -20,6 +20,11 @@ class EnvelopeEmailField(m.StringField):
         super(EnvelopeEmailField, self).validate(value)
 
 
+class EmailRecipientStatus(cmodels.BaseRecipientStatus):
+    _repr_vars = ['email']
+    email_address = m.EmailField(unique=True, required=True)
+
+
 class EmailRecipient(cmodels.BaseRecipient):
     _repr_vars = ['email']
 
@@ -42,6 +47,24 @@ class EmailRecipient(cmodels.BaseRecipient):
         # Remove lt/gt
         email = email[1:-1]
         return (name, email)
+
+    @property
+    def email_address(self):
+        return self.split_envelope()[1]
+
+    """
+    RecipientStatus
+    """
+
+    # What about lazy ref field?
+    _status = m.ReferenceField(EmailRecipientStatus, dbref=False)
+
+    @property
+    def status(self):
+        if not self._status:
+            self._status, created = EmailRecipientStatus.objects.get_or_create(
+                email_address=self.email_address)
+        return self._status
 
 
 class EmailTemplate(cmodels.BaseTemplate):

@@ -1,5 +1,8 @@
 #!/usr/bin/env python2.7
 
+import emag.campaign.documents as cm
+from emag.campaign.documents import LogEntry, RecipientLogEntry
+
 import emag.emails.documents as em
 from emag.emails.documents import EmailRecipient, EmailTemplate, EmailCampaign
 import emag.sms.documents as sm
@@ -69,3 +72,31 @@ ec = do_email()
 #if sc.pk:
 #    sc.delete()
 #    sc = do_sms()
+
+
+#def do_logs():
+#    def move_log_to_status(r, ec):
+#        for log in r.log:
+#            print log
+#            log = log.copy()
+#            log['campaign'] = ec.pk
+#            e = RecipientLogEntry(**log)
+#            #print e.to_mongo()
+#            r.status.append_log(entry_obj=e)
+#        r.log = []
+#
+#    for ec in EmailCampaign.objects.all():
+#        for r in ec.recipients:
+#            move_log_to_status(r, ec)
+#        ec.save()
+
+#def do_logs():
+#    def do_r(r, ec):
+#        for log in r.log:
+#            print log
+#
+#    for ec in EmailCampaign.objects.all():
+#        for r in ec.recipients:
+#            do_r(r, ec)
+#        ec.save()
+
