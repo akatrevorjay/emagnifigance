@@ -50,6 +50,41 @@ from slimta.policy.headers import AddDateHeader, AddMessageIdHeader, AddReceived
 
 
 # TODO DKIM Key cache and signing using dkimpy
+"""
+Sign example
+
+from __future__ import print_function
+
+import sys
+
+import dkim
+
+if len(sys.argv) < 4 or len(sys.argv) > 5:
+    print("Usage: dkimsign.py selector domain privatekeyfile [identity]", file=sys.stderr)
+    sys.exit(1)
+
+if sys.version_info[0] >= 3:
+    # Make sys.stdin and stdout binary streams.
+    sys.stdin = sys.stdin.detach()
+    sys.stdout = sys.stdout.detach()
+
+selector = sys.argv[1].encode('ascii')
+domain = sys.argv[2].encode('ascii')
+privatekeyfile = sys.argv[3]
+if len(sys.argv) > 5:
+    identity = sys.argv[4].encode('ascii')
+else:
+    identity = None
+
+message = sys.stdin.read()
+try:
+    sig = dkim.sign(message, selector, domain, open(privatekeyfile, "rb").read(), identity = identity)
+    sys.stdout.write(sig)
+    sys.stdout.write(message)
+except Exception as e:
+    print(e, file=sys.stderr)
+    sys.stdout.write(message)
+"""
 
 
 class EMagMxSmtpRelay(MxSmtpRelay):
