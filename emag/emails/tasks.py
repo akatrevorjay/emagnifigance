@@ -49,13 +49,20 @@ from slimta.policy.headers import AddDateHeader, AddMessageIdHeader, AddReceived
 #from gevent.dns import DNSError
 
 
+# TODO DKIM Key cache and signing using dkimpy
+
+
+class EMagMxSmtpRelay(MxSmtpRelay):
+    pass
+
+
 class Handle_Email(Task):
     _relay = None
 
     @property
     def relay(self):
         if not self._relay:
-            self._relay = MxSmtpRelay(
+            self._relay = EMagMxSmtpRelay(
                 pool_size=2,
                 #tls=tls,
                 ehlo_as=settings.SERVER_NAME,
