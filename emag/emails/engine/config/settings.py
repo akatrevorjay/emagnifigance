@@ -10,6 +10,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "emag.settings")
 import logging
 #from app.model import table
 
+__version__ = 'EMag SMTPd version 0.2'
 fqdn = 'mx20.emagnifigance.net'
 
 # You may add additional parameters such as `username' and `password' if your

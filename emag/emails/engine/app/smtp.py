@@ -1,16 +1,14 @@
-from smtpd import DEBUGSTREAM, SMTPServer, SMTPChannel
+from smtpd import DEBUGSTREAM, SMTPServer
+import smtpd
 import asynchat
 import socket
 import errno
 
 from lamson.server import SMTPReceiver
-from config.settings import fqdn
+from config.settings import fqdn, __version__
 
 
-__version__ = 'EMag SMTPd version 0.2'
-
-
-class EMagSMTPChannel(SMTPChannel):
+class SMTPChannel(smtpd.SMTPChannel):
     def __init__(self, server, conn, addr):
         asynchat.async_chat.__init__(self, conn)
         self.__server = server
@@ -44,7 +42,7 @@ class EMagSMTPReceiver(SMTPReceiver):
         if pair is not None:
             conn, addr = pair
             print >> DEBUGSTREAM, 'Incoming connection from %s' % repr(addr)
-            channel = EMagSMTPChannel(self, conn, addr)
+            channel = SMTPChannel(self, conn, addr)
 
     def __init__(self, host='127.0.0.1', port=8825):
         """
