@@ -37,7 +37,7 @@ from email.message import Message
 import email.parser
 
 from slimta.envelope import Envelope
-from slimta.relay.smtp.mx import MxSmtpRelay
+from slimta.relay.smtp.mx import MxSmtpRelay as MxSmtpRelayBase
 
 from slimta.core import SlimtaError
 #from slimta.smtp import ConnectionLost, BadReply
@@ -87,7 +87,7 @@ except Exception as e:
 """
 
 
-class EMagMxSmtpRelay(MxSmtpRelay):
+class MxSmtpRelay(MxSmtpRelayBase):
     pass
 
 
@@ -97,7 +97,7 @@ class Handle_Email(Task):
     @property
     def relay(self):
         if not self._relay:
-            self._relay = EMagMxSmtpRelay(
+            self._relay = MxSmtpRelay(
                 pool_size=2,
                 #tls=tls,
                 ehlo_as=settings.SERVER_NAME,
