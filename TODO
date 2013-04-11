@@ -9,15 +9,31 @@ X 3. Setup PTR records for IPs
 
 X 5. Make EmailFields accept envelope froms (Trevor Joynson <trevorj@ctmsohio.com>)
 
-~ 6. Finish Lamson/Slimta engine for emails
+X 6. Finish Lamson/Slimta engine for emails
 
 X 7. Fix dupe save
 
-8. Exclude some fields from API view
+X 8. Exclude some fields from API view
 
-9. Make campaigns RO after creation
+X 9. Make campaigns RO after creation
 
-10. FBL parsing upon Lamson/Slimta engine receive
+X 10. FBL parsing upon Lamson/Slimta engine receive
 
 11. Bounce emails in form bounce-email=domain.com@bounces.localhostsolutions.com
 
+12. Recipient status check to see if recpient is set as bounced/spammed/etc
+
+13. Stats per domain to better aggregate errors across all outgoing servers
+    - Delays per domain after thresholds
+
+~ 14. Global blacklist, global recipient log, status, etc
+
+15. Check for global blacklist and spamlist (fbl'd) while sending
+
+16. Texting portion (code needs updated)
+    - Including DoNotCall registry
+
+17. Analytics per user, right now it's a bit manual of a process.
+
+18. gevent (dev) bug where pot.*\.loop somewhere in gevent (line 107 maybe?) causes AttributeError because loop does not exist.
+    Quite odd. I've worked around it by try/except/pass'ing that line, but who knows what else that does.
