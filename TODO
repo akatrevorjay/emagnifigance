@@ -1,25 +1,5 @@
 
-X 1. Setup uwsgi with nginx with SSL through localhostsolutions.com domain.
-
-X 2. Setup external IPs with Juniper
-
-X 3. Setup PTR records for IPs
-
 4. Split up celery procs per IP
-
-X 5. Make EmailFields accept envelope froms (Trevor Joynson <trevorj@ctmsohio.com>)
-
-X 6. Finish Lamson/Slimta engine for emails
-
-X 7. Fix dupe save
-
-X 8. Exclude some fields from API view
-
-X 9. Make campaigns RO after creation
-
-X 10. FBL parsing upon Lamson/Slimta engine receive
-
-11. Bounce emails in form bounce-email=domain.com@bounces.localhostsolutions.com
 
 12. Recipient status check to see if recpient is set as bounced/spammed/etc
 
@@ -37,3 +17,28 @@ X 10. FBL parsing upon Lamson/Slimta engine receive
 
 18. gevent (dev) bug where pot.*\.loop somewhere in gevent (line 107 maybe?) causes AttributeError because loop does not exist.
     Quite odd. I've worked around it by try/except/pass'ing that line, but who knows what else that does.
+
+19. Keep track of returned bouncebacks. Lamson has built in support for such things!
+
+--- Completed ---
+
+X 1. Setup uwsgi with nginx with SSL through localhostsolutions.com domain.
+
+X 2. Setup external IPs with Juniper
+
+X 3. Setup PTR records for IPs
+
+X 5. Make EmailFields accept envelope froms (Trevor Joynson <trevorj@ctmsohio.com>)
+
+X 6. Finish Lamson/Slimta engine for emails
+
+X 7. Fix dupe save
+
+X 8. Exclude some fields from API view
+
+X 9. Make campaigns RO after creation
+
+X 10. FBL parsing upon Lamson/Slimta engine receive
+
+n/a 11. Bounce emails in form bounce-email=domain.com@bounces.localhostsolutions.com
+    - Decided against this.

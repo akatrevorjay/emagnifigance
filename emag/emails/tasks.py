@@ -1,36 +1,9 @@
-#from celery import task, Task
-#from celery.utils.log import get_task_logger
-#logger = get_task_logger(__name__)
-#from django.core import mail
-from celery import task, Task
-#from celery import group, subtask, group, chain
+from celery import Task
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
-#from django.template import Context
 from django.conf import settings
-#from django.utils import timezone
+
 import time
-#import emag.emails.tasks
-from emag.campaign.tasks import handle_template, get_campaign
-
-
-"""
-@task
-def test_mass_send():
-    emails = (
-        ('Hey Man', "I'm The Dude! So that's what you call me.", 'dude@aol.com', ['mr@lebowski.com']),
-        ('Dammit Walter', "Let's go bowlin'.", 'dude@aol.com', ['wsobchak@vfw.org']),
-    )
-    return mail.send_mass_mail(emails)
-"""
-
-
-"""
-def send_email(recipient, body, subject, sender):
-    return mail.send_mail(subject, body, sender, [recipient])
-"""
-
-
 import email
 import email.message
 from email.message import Message
@@ -38,7 +11,6 @@ import email.parser
 
 from slimta.envelope import Envelope
 from slimta.relay.smtp.mx import MxSmtpRelay as MxSmtpRelayBase
-
 from slimta.core import SlimtaError
 #from slimta.smtp import ConnectionLost, BadReply
 from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
@@ -46,12 +18,20 @@ from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
 from slimta.relay.smtp.mx import NoDomainError
 from slimta.policy.headers import AddDateHeader, AddMessageIdHeader, AddReceivedHeader
 #from slimta.policy.split import RecipientDomainSplit, RecipientSplit
-#from gevent.dns import DNSError
+
+from emag.campaign.tasks import handle_template, get_campaign
+
+import os
+import dkim
+
+
+class MxSmtpRelay(MxSmtpRelayBase):
+    pass
 
 
 # TODO DKIM Key cache and signing using dkimpy
 """
-Sign example
+DKIM Sign example
 
 from __future__ import print_function
 
@@ -85,10 +65,6 @@ except Exception as e:
     print(e, file=sys.stderr)
     sys.stdout.write(message)
 """
-
-
-class MxSmtpRelay(MxSmtpRelayBase):
-    pass
 
 
 class Handle_Email(Task):
@@ -136,7 +112,9 @@ class Handle_Email(Task):
 
         logger.info("Sending Email for '%s'=>'%s' [%s]", sender, recipient, subject)
 
-        # Create Message
+        """ Message """
+
+        # Create Message object
         message = Message()
         message = email.message_from_string(body)
 
@@ -153,6 +131,34 @@ class Handle_Email(Task):
         message['To'] = recipient
         message['Subject'] = subject
 
+        """ DKIM """
+
+        selector = 'emag'
+        selector = 'key1'
+        sender_domain = sender_address.split('@', 1)[-1]
+
+        dkim_privkey_path = '/opt/emag/etc/dkim_keys/'
+        privkey_filename = '%s__%s.key' % (selector, sender_domain)
+        privkey_path = os.path.join(dkim_privkey_path, privkey_filename)
+        #logger.info('privkey_path=%s exists=%s', privkey_path, os.path.exists(privkey_path))
+
+        if os.path.exists(privkey_path):
+            privkey = open(privkey_path, 'rb').read()
+        else:
+            privkey = None
+
+        if privkey:
+            logger.info('Found DKIM key for us to sign with. Signing message using selector=%s, domain=%s.', selector, sender_domain)
+            sig = dkim.sign(message.as_string(unixfrom=True), selector, sender_domain, privkey, logger=logger)
+            #logger.info('dkim sig=%s', sig)
+            sig_header_name, sig_header_value = sig.split(':', 1)
+            message[sig_header_name] = sig_header_value
+        else:
+            logger.warning('Could not find DKIM key for selector=%s, domain=%s.', selector, sender_domain)
+
+        """ Envelope """
+
+        # Create Envelope object from Message
         envelope = Envelope(sender=sender_address, recipients=[recipient_address])
         envelope.parse(message)
 
@@ -175,12 +181,25 @@ class Handle_Email(Task):
             #logger.info("Applying policy %s", policy)
             policy.apply(envelope)
 
+        """ DKIM (If it has to be after policy mangles """
+
+        #if privkey:
+        #    headers, body = envelope.flatten()
+        #    message = headers
+        #    logger.info('headers=%s', headers)
+        #    logger.info('message=%s', message)
+
+        #    sig = dkim.sign(headers + flatten(), selector, domain, privkey, logger=logger)
+        #    logger.info('dkim sig2=%s', sig)
+
+        """ Debug """
+
+        # Debug output
         #logger.info("message=%s", message)
         #logger.info("envelope=%s", envelope)
         #logger.info("envelope_flat=%s", envelope.flatten())
-        #print envelope.flatten()
 
-        #from gevent.dns import DNSError
+        """ Attempt to send """
 
         campaign = get_campaign(campaign_type, campaign_pk)
         r = campaign.recipients[r_index]
@@ -194,10 +213,6 @@ class Handle_Email(Task):
             campaign.incr_success_count()
             campaign.save()
 
-        #except ConnectionLost, e:
-        #except Exception, e:
-        #except (SlimtaError, ConnectionLost, BadReply, DNSError), e:
-        #except (SlimtaError, DNSError) as e:
         except (SlimtaError, Exception) as e:
             error_code = None
             bounce = False
@@ -254,3 +269,19 @@ class Handle_Email(Task):
         return ret
 
 handle_email = Handle_Email()
+
+
+"""
+Old Code
+
+@task
+def test_mass_send():
+    emails = (
+        ('Hey Man', "I'm The Dude! So that's what you call me.", 'dude@aol.com', ['mr@lebowski.com']),
+        ('Dammit Walter', "Let's go bowlin'.", 'dude@aol.com', ['wsobchak@vfw.org']),
+    )
+    return mail.send_mass_mail(emails)
+
+def send_email(recipient, body, subject, sender):
+    return mail.send_mail(subject, body, sender, [recipient])
+"""
