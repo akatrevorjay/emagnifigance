@@ -1,14 +1,14 @@
 import mongoengine as m
 from emag.models import CreatedModifiedDocMixIn, ReprMixIn
 #from django.conf import settings
-#import logging
+import logging
+logger = logging.getLogger(__name__)
 #from datetime import timedelta
 from django.template import Template
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.contrib.auth.models import User
 from itertools import izip
-import logging
 from uuid import uuid4
 
 from . import tasks
@@ -55,8 +55,7 @@ class BaseRecipientStatus(ReprMixIn, CreatedModifiedDocMixIn, m.Document):
             entry_obj = RecipientLogEntry(**kwargs)
         assert not entry_obj.pk
         entry_obj.save()
-        self.log.append(entry_obj)
-        self.save()
+        self.update(push__log=entry_obj)
 
 
 class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
@@ -76,12 +75,14 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
         return self.status.log
 
     def append_log(self, **kwargs):
-        kwargs['campaign'] = self._instance.pk
-        self.status.append_log(**kwargs)
-
         success = kwargs.get('success')
         if success is not None and self.success != success:
-            self.success = success
+            #self._instance.__class__.objects(pk=self._instance.pk).filter(recipients___status=self.status).update(set__recipients__S__success=True)
+            index = self._instance.recipients.index(self)
+            self._instance.update(**{'set__recipients__%d__success' % index: True})
+
+        kwargs['campaign'] = self._instance.pk
+        self.status.append_log(**kwargs)
 
     """
     RecipientStatus
@@ -189,19 +190,17 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         return last_state
 
     def _clear_state(self):
-        self.state = {}
-        self.save()
+        self.update(set__state={})
 
     def mark_state(self, state):
         if self.state.get(state):
             return
-        self.state[state] = {'at': timezone.now()}
-        self.save()
+        self.update(**{'set__state__%s' % state: {'at': timezone.now()}})
 
     def mark_started(self):
         ret = self.mark_state('started')
-        self.state['sent_success_count'] = 0
-        self.state['sent_failure_count'] = 0
+        self.state['sent_success_count'] = self.sent_success_count
+        self.state['sent_failure_count'] = self.sent_failure_count
         return ret
 
     def mark_queued(self):
@@ -276,43 +275,69 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         """Starts queueing up campaign as a background task on a worker.
         Returns an AsyncResult that can be checked for return status."""
         if self.is_started:
-            raise Exception('Campaign has already been started')
+            logger.warning('Campaign %s has already been started. Resending to recipients where r.success is None.')
         self.mark_started()
         return tasks.queue.delay(self.campaign_type, self.pk)
+
+    def get_remaining_recipients(self):
+        for r_index, r in enumerate(self.recipients):
+            if r.success is not None:
+                continue
+            yield (r_index, r)
+
+    def get_remaining_recipients_indexes(self):
+        for r_index, r in self.get_remaining_recipients():
+            yield r_index
 
     def get_template_vars(self, template_vars=False):
         if template_vars:
             template_vars = self.template.get_template_vars()
-        for r in iter(self.recipients):
+        for r_index, r in self.get_remaining_recipients():
             if template_vars is False:
-                yield r.get_template_vars()
+                yield (r_index, r.get_template_vars())
             else:
-                yield (r.get_template_vars(), template_vars)
-        self.state['recipient_index'] = self.total
-        self.save()
+                yield (r_index, (r.get_template_vars(), template_vars))
+        self.update(set__state__recipient_index=self.total)
 
     def chunk_next_recipients(self, count=1):
         for r in izip(*[iter(self.recipients[self.current:])] * count):
             #yield r
             yield r.get_template_vars()
         self.state['recipient_index'] = self.total
-        self.save()
+        self.update(set__state__recipient_index=self.total)
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):
         if kwargs.get('created', None):
-            logging.debug("Post Save: %s: Created", document)
-            logging.info("Starting Campaign %s", document)
+            logger.debug("Post Save: %s: Created", document)
+            logger.info("Starting Campaign %s", document)
             if not document.is_started:
                 document.start()
         else:
-            logging.debug("Post Save: %s: Updated", document)
+            logger.debug("Post Save: %s: Updated", document)
 
     def incr_success_count(self):
-        self.state['sent_success_count'] = self.state.get('sent_success_count', 0) + 1
+        self.update(inc__state__sent_success_count=1)
 
     def incr_failure_count(self):
-        self.state['sent_failure_count'] = self.state.get('sent_failure_count', 0) + 1
+        self.update(inc__state__sent_failure_count=1)
+
+    @property
+    def sent_success_count(self):
+        return self.state.get('sent_success_count', 0)
+
+    @property
+    def sent_failure_count(self):
+        return self.state.get('sent_failure_count', 0)
+
+    @property
+    def sent_total(self):
+        return self.sent_success_count + self.sent_failure_count
+
+    def check_completed(self):
+        if self.sent_total >= self.total:
+            self.mark_completed()
+
 
 #from mongoengine.signals import post_save
 #post_save.connect(BaseCampaign._start_campaign_on_save_created,

@@ -471,6 +471,8 @@ CELERY_IMPORTS = (
 CELERY_ROUTES = {
     'emag.campaign.tasks.queue': {'queue': 'campaigns'},
     'emag.emails.tasks.Handle_Email': {'queue': 'emails'},
+    'emag.emails.tasks.PrepareMessage': {'queue': 'emails'},
+    'emag.emails.tasks.SendMessage': {'queue': 'emails'},
     'emag.emails.tasks2.handle_fbl': {'queue': 'emails'},
     'emag.campaign.tasks.handle_sms': {'queue': 'sms'},
 }
@@ -493,6 +495,7 @@ CELERY_RESULT_BACKEND = "amqp"
 #CELERY_TASK_RESULT_EXPIRES = 3600
 CELERY_TASK_RESULT_EXPIRES = 300
 
+CELERY_DISABLE_RATE_LIMITS = True
 
 #CELERY_PREFETCH_MULTIPLIER = 8
 #CELERY_CONCURRENCY = 8

@@ -13,6 +13,14 @@ TEST_NAME = 'Test %s Campaign'
 TEST_DESC = 'Testing of %s Campaign'
 
 u_trevorj = User.objects.get(username='trevorj')
+u_jskeen = User.objects.get(username='jskeen')
+u_knr = User.objects.get(username='knr')
+
+
+def get_user_campaigns(username=None, user=None):
+    if username:
+        user = User.objects.get(username=username)
+    return EmailCampaign.objects.filter(user_pk=user.pk).order_by('-created')
 
 
 def do_email():
@@ -22,9 +30,14 @@ def do_email():
 
     ec = EmailCampaign(name=TEST_NAME % cur_type, user_pk=u_trevorj.pk)
     for i in xrange(1):
+        #ec.recipients.append(
+        #    EmailRecipient(email='"Trevor Joynson" <trevorj@ctmsohio.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+        #)
         ec.recipients.append(
-            #EmailRecipient(email='trevorj%d@ctmsohio.com' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
-            EmailRecipient(email='"Trevor Joynson" <trevorj@ctmsohio.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+            EmailRecipient(email='"Trevor Joynson" <trevorj@locsol.net>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+        )
+        ec.recipients.append(
+            EmailRecipient(email='"Trevor Joynson" <trevorjoynson@gmail.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
         )
         #ec.recipients.append(
         #    EmailRecipient(email='"Eric Cooper" <ecooper@ctmsohio.com>', context=dict(first_name='Eric%d' % i, last_name='Cooper%d' % i)),

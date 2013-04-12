@@ -1,8 +1,9 @@
+
 from celery import task
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from emag.campaign.tasks import get_campaign
-import uuid
+#import uuid
 import re
 
 
@@ -43,25 +44,24 @@ def handle_fbl(message, vendor=None, host=None):
         logger.error('Could not parse FBL as ARF: %s', e)
         return
 
-    campaign_uuid = str(original_msg.get('List-Id'))
-    m = re.match(r'^[a-f\d]{8}-([a-f\d]{4}-){3}[a-f\d]{12}$', campaign_uuid, re.IGNORECASE)
-    if not campaign_uuid or not m:
-        logger.error("FBL report original message does not contain a valid List-Id header: %s", campaign_uuid)
-        return
-    campaign_uuid = uuid.UUID(campaign_uuid)
-    logger.debug('campaign_uuid=%s', campaign_uuid)
+    #campaign_uuid = str(original_msg.get('List-Id'))
+    #m = re.match(r'^[a-f\d]{8}-([a-f\d]{4}-){3}[a-f\d]{12}$', campaign_uuid, re.IGNORECASE)
+    #if not campaign_uuid or not m:
+    #    logger.error("FBL report original message does not contain a valid List-Id header: %s", campaign_uuid)
+    #    return
+    #campaign_uuid = uuid.UUID(campaign_uuid)
+    #logger.debug('campaign_uuid=%s', campaign_uuid)
 
-    list_index = str(original_msg.get('List-Index'))
+    list_index = str(original_msg.get('List-Id'))
     # TODO This regex doesn't belong here. It will be forgotten about.
     m = re.match(r'^([a-f\d]{8,64})-(\d{1,8})$', list_index, re.IGNORECASE)
     if not list_index or not m:
-        logger.error("FBL report original message does not contain a valid List-Index header: %s", list_index)
+        logger.error("FBL report original message does not contain a valid List-Id header: %s", list_index)
         return
     campaign_pk, r_index = m.groups()
     r_index = int(r_index)
     logger.debug('campaign_pk=%s, r_index=%s', campaign_pk, r_index)
 
-    #campaign = get_campaign('emails', uuid=campaign_uuid)
     campaign = get_campaign('emails', pk=campaign_pk)
     r = campaign.recipients[r_index]
     logger.info("Got FBL for Campaign %s: %s (vendor=%s)", campaign, r.email, vendor)

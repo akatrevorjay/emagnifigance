@@ -1,23 +1,15 @@
 from celery import Task
+from celery.task import periodic_task
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from django.conf import settings
 
 import time
-import email
-import email.message
-from email.message import Message
-import email.parser
-
-from slimta.envelope import Envelope
-from slimta.relay.smtp.mx import MxSmtpRelay as MxSmtpRelayBase
-from slimta.core import SlimtaError
-#from slimta.smtp import ConnectionLost, BadReply
-from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
-from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
-from slimta.relay.smtp.mx import NoDomainError
-from slimta.policy.headers import AddDateHeader, AddMessageIdHeader, AddReceivedHeader
-#from slimta.policy.split import RecipientDomainSplit, RecipientSplit
+from email import message_from_string
+#import email.message
+#from email.message import Message
+#from marrow.mailer.message import Message
+#import email.parser
 
 from emag.campaign.tasks import handle_template, get_campaign
 
@@ -25,69 +17,30 @@ import os
 import dkim
 
 
-class MxSmtpRelay(MxSmtpRelayBase):
-    pass
+#from slimta.relay.smtp.mx import MxSmtpRelay as MxSmtpRelayBase
+#class MxSmtpRelay(MxSmtpRelayBase):
+#    pass
 
 
-# TODO DKIM Key cache and signing using dkimpy
-"""
-DKIM Sign example
-
-from __future__ import print_function
-
-import sys
-
-import dkim
-
-if len(sys.argv) < 4 or len(sys.argv) > 5:
-    print("Usage: dkimsign.py selector domain privatekeyfile [identity]", file=sys.stderr)
-    sys.exit(1)
-
-if sys.version_info[0] >= 3:
-    # Make sys.stdin and stdout binary streams.
-    sys.stdin = sys.stdin.detach()
-    sys.stdout = sys.stdout.detach()
-
-selector = sys.argv[1].encode('ascii')
-domain = sys.argv[2].encode('ascii')
-privatekeyfile = sys.argv[3]
-if len(sys.argv) > 5:
-    identity = sys.argv[4].encode('ascii')
-else:
-    identity = None
-
-message = sys.stdin.read()
-try:
-    sig = dkim.sign(message, selector, domain, open(privatekeyfile, "rb").read(), identity = identity)
-    sys.stdout.write(sig)
-    sys.stdout.write(message)
-except Exception as e:
-    print(e, file=sys.stderr)
-    sys.stdout.write(message)
-"""
+#from .documents import EmailCampaign
+from datetime import timedelta
 
 
-class Handle_Email(Task):
-    _relay = None
+@periodic_task(run_every=timedelta(minutes=1))
+def check_for_completed():
+    from .documents import EmailCampaign
+    for campaign in EmailCampaign.objects(state__completed__exists=False):
+        campaign.check_completed()
 
-    @property
-    def relay(self):
-        if not self._relay:
-            self._relay = MxSmtpRelay(
-                pool_size=2,
-                #tls=tls,
-                ehlo_as=settings.SERVER_NAME,
-                connect_timeout=20.0,
-                command_timeout=10.0,
-                data_timeout=20.0,
-                idle_timeout=10.0,
-            )
-        return self._relay
 
+class PrepareMessage(Task):
     _policies = None
 
     @property
     def policies(self):
+        from slimta.policy.headers import AddDateHeader, AddMessageIdHeader, AddReceivedHeader
+        #from slimta.policy.split import RecipientDomainSplit, RecipientSplit
+
         if not self._policies:
             self._policies = [
                 AddDateHeader(),
@@ -96,36 +49,75 @@ class Handle_Email(Task):
             ]
         return self._policies
 
-    def __init__(self):
-        Task.__init__(self)
+    dkim_privkey_path = '/opt/emag/etc/dkim_keys/'
+
+    def dkim_find_privkey(self, sender_domain, selector='emag'):
+        privkey_filename = '%s__%s.key' % (selector, sender_domain)
+        privkey_path = os.path.join(self.dkim_privkey_path, privkey_filename)
+        #logger.info('privkey_path=%s exists=%s', privkey_path, os.path.exists(privkey_path))
+        return privkey_path
+
+    def dkim_get_privkey(self, sender_domain, selector='emag'):
+        # temp hack till I make an emag.emagnifigance.net selctor for testing
+        for selector in [selector, 'key1']:
+            privkey_path = self.dkim_find_privkey(sender_domain, selector)
+
+            if not os.path.exists(privkey_path):
+                continue
+
+            with open(privkey_path, 'rb') as f:
+                privkey = f.read()
+                return (selector, privkey)
+
+        return (None, None)
+
+    def dkim_sign(self, sender_domain, message=None, envelope=None):
+        selector, privkey = self.dkim_get_privkey(sender_domain)
+
+        if privkey:
+            logger.info('Found DKIM key for us to sign with. Signing message using selector=%s, domain=%s.', selector, sender_domain)
+
+            if envelope is not None:
+                # TODO This does not work.
+                flat_msg = u'%s\r\n%s' % envelope.flatten()
+            if message is not None:
+                flat_msg = message.as_string()
+
+            return dkim.sign(flat_msg, selector, sender_domain, privkey, logger=logger)
+        else:
+            logger.warning('Could not find DKIM key for domain=%s.', sender_domain)
 
     def run(self, r_vars, t_vars, campaign_type, campaign_pk, r_index, campaign_uuid):
+        from slimta.envelope import Envelope
+
         recipient = r_vars['email']
         recipient_address = r_vars['email_address']
         sender = t_vars['sender']
         sender_address = t_vars['sender_address']
+        sender_domain = sender_address.split('@', 1)[-1]
         tmpl = handle_template(r_vars, t_vars)
 
         subject = tmpl['subject']
-        body = tmpl['body']
-        attempts = self.request.retries
 
-        logger.info("Sending Email for '%s'=>'%s' [%s]", sender, recipient, subject)
+        #body = tmpl['body'].encode('utf-8', 'ignore')
+        body = tmpl['body'].encode('ascii', 'ignore')
+
+        """ Log """
+
+        logger.info("Preparing email message for '%s'=>'%s' [%s]", sender, recipient, subject)
 
         """ Message """
 
-        # Create Message object
-        message = Message()
-        message = email.message_from_string(body)
+        message = message_from_string(body)
+        #message.set_charset('utf-8')
 
         message['Precedence'] = 'list'
-        message['List-Id'] = campaign_uuid
-        #message['List-Unsubscribe'] = None
 
         # TODO This is dirty and is a quick hack
         magic = '%s-%s' % (campaign_pk, r_index)
-        message['List-Index'] = magic
+        message['List-Id'] = magic
         message['Return-Path'] = 'ret-%s@emagnifigance.net' % magic
+        message['List-Unsubscribe'] = 'unsub-%s@emagnifigance.net' % magic
 
         message['From'] = sender
         message['To'] = recipient
@@ -133,28 +125,12 @@ class Handle_Email(Task):
 
         """ DKIM """
 
-        selector = 'emag'
-        selector = 'key1'
-        sender_domain = sender_address.split('@', 1)[-1]
-
-        dkim_privkey_path = '/opt/emag/etc/dkim_keys/'
-        privkey_filename = '%s__%s.key' % (selector, sender_domain)
-        privkey_path = os.path.join(dkim_privkey_path, privkey_filename)
-        #logger.info('privkey_path=%s exists=%s', privkey_path, os.path.exists(privkey_path))
-
-        if os.path.exists(privkey_path):
-            privkey = open(privkey_path, 'rb').read()
-        else:
-            privkey = None
-
-        if privkey:
-            logger.info('Found DKIM key for us to sign with. Signing message using selector=%s, domain=%s.', selector, sender_domain)
-            sig = dkim.sign(message.as_string(unixfrom=True), selector, sender_domain, privkey, logger=logger)
-            #logger.info('dkim sig=%s', sig)
+        sig = self.dkim_sign(sender_domain, message=message)
+        if sig:
+            logger.debug('DKIM sig=%s', sig)
             sig_header_name, sig_header_value = sig.split(':', 1)
-            message[sig_header_name] = sig_header_value
-        else:
-            logger.warning('Could not find DKIM key for selector=%s, domain=%s.', selector, sender_domain)
+            message.add_header(sig_header_name, sig_header_value)
+            #envelope.headers.add_header(sig_header_name, sig_header_value)
 
         """ Envelope """
 
@@ -183,14 +159,69 @@ class Handle_Email(Task):
 
         """ DKIM (If it has to be after policy mangles """
 
-        #if privkey:
-        #    headers, body = envelope.flatten()
-        #    message = headers
-        #    logger.info('headers=%s', headers)
-        #    logger.info('message=%s', message)
+        #sig = self.dkim_sign(sender_domain, envelope=envelope)
+        #if sig:
+        #    logger.info('DKIM sig=%s', sig)
+        #    sig_header_name, sig_header_value = sig.split(':', 1)
+        #    envelope.headers.add_header(sig_header_name, sig_header_value)
 
-        #    sig = dkim.sign(headers + flatten(), selector, domain, privkey, logger=logger)
-        #    logger.info('dkim sig2=%s', sig)
+        """ Debug """
+
+        # Debug output
+        #logger.info("message=%s", message)
+        #logger.info("envelope=%s", envelope)
+        #logger.info("envelope_flat=%s", envelope.flatten())
+
+        """ Attempt to send """
+        send_message.apply_async((sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index))
+
+prepare_message = PrepareMessage()
+
+
+class SendMessage(Task):
+    _relay = None
+
+    @property
+    def relay(self):
+        try:
+            from slimta.relay.smtp.client import SmtpRelayClient
+            from slimta.relay.smtp.mx import MxSmtpRelay
+        except ImportError as e:
+            logger.exception("ImportError: %s", e, exc=e)
+
+        if not self._relay:
+            self._relay = MxSmtpRelay(
+                #pool_size=2,
+                pool_size=8,
+                ##tls=tls,
+                ehlo_as=settings.SERVER_NAME,
+                #connect_timeout=20.0,
+                #command_timeout=10.0,
+                #data_timeout=20.0,
+                #idle_timeout=10.0,
+            )
+        return self._relay
+
+    def run(self, sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index):
+        try:
+            from slimta.relay.smtp.client import SmtpRelayClient
+            from slimta.core import SlimtaError
+            #from slimta.smtp import ConnectionLost, BadReply
+            from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
+            from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
+            #from slimta.relay.smtp.mx import NoDomainError
+        except ImportError as e:
+            logger.exception("ImportError: %s", e, exc=e)
+
+        #recipient_address = r_vars['email_address']
+        #sender_address = t_vars['sender_address']
+        #sender_domain = sender_address.split('@', 1)[-1]
+
+        attempts = self.request.retries
+
+        """ Log """
+
+        logger.info("Sending email for '%s'=>'%s' [%s]", sender, recipient, subject)
 
         """ Debug """
 
@@ -211,7 +242,6 @@ class Handle_Email(Task):
             # TODO Get real reply smtp_msg for success
             r.append_log(success=True, smtp_msg='200 OK')
             campaign.incr_success_count()
-            campaign.save()
 
         except (SlimtaError, Exception) as e:
             error_code = None
@@ -248,7 +278,6 @@ class Handle_Email(Task):
                 countdown = step + (step * attempts)
                 # TODO record this message as the log in the recipient log
                 logger.warning('Retrying in %ds', countdown)
-                campaign.save()
                 raise self.retry(countdown=countdown, exc=e)
             else:
                 if bounce:
@@ -262,26 +291,9 @@ class Handle_Email(Task):
 
                 # Increase campaign fail count, as we're giving up
                 campaign.incr_failure_count()
-                campaign.save()
                 return False
                 #raise e
 
         return ret
 
-handle_email = Handle_Email()
-
-
-"""
-Old Code
-
-@task
-def test_mass_send():
-    emails = (
-        ('Hey Man', "I'm The Dude! So that's what you call me.", 'dude@aol.com', ['mr@lebowski.com']),
-        ('Dammit Walter', "Let's go bowlin'.", 'dude@aol.com', ['wsobchak@vfw.org']),
-    )
-    return mail.send_mass_mail(emails)
-
-def send_email(recipient, body, subject, sender):
-    return mail.send_mail(subject, body, sender, [recipient])
-"""
+send_message = SendMessage()

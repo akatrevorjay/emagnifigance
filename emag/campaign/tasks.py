@@ -1,53 +1,12 @@
-from celery import task, chord, group, chunks, Task
+
+#from celery import task, chord, group, chunks, Task
 #from celery import group, subtask, group, chain
+from celery import task, group
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from django.template import Context
-from django.conf import settings
-from django.utils import timezone
-import time
 #import emag.emails.tasks
 import emag.sms.tasks
-
-
-#import celery
-#from celery.result import AsyncResult
-#import random
-
-
-#@task
-#def add2(*args):
-#    ret = 0
-#    for arg in args:
-#        ret += arg
-#    return ret
-
-
-#@task
-#def add(x, y):
-#    return x + y
-
-
-#@celery.task
-#def error_handler(uuid):
-#    result = AsyncResult(uuid)
-#    exc = result.get(propagate=False)
-#    print('Task %r raised exception: %r\n%r' % (
-#          exc, result.traceback))
-
-
-#@task
-#def test_task(*args, **kwargs):
-#    logger.info('test_task: args=%s kwargs=%s', args, kwargs)
-#    #time.sleep(float(random.randint(1, 5)) / 5.0)
-#    #time.sleep(0.1)
-#    return True
-
-
-#@task
-#def test_task_ret(rvs, campaign, *args, **kwargs):
-#    logger.info('test_task_ret: rvs=%s, campaign=%s args=%s kwargs=%s', rvs, campaign, args, kwargs)
-#    return True
 
 
 def get_campaign(campaign_type, pk=None, **kwargs):
@@ -75,37 +34,21 @@ def queue(campaign_type, campaign_pk):
                 campaign.remaining,
                 campaign.total)
 
-    # TODO Group by destination domain?
-
     t_vars = campaign.template.get_template_vars()
 
-    # I don't know how well this will scale, need to find out. May need to
-    # split up into smaller tasks that grab a chunk.
-    #partial = campaign._handler.s(**t_vars)
-    #(group(partial(r_vars) for r_vars in campaign.get_template_vars()) | check_send_retvals.s(campaign))()
-    #partial = campaign._handler.s(**t_vars)
+    def get_handlers():
+        for r_index, r_vars in campaign.get_template_vars():
+            yield campaign._handler.s(r_vars, t_vars, campaign_type, campaign_pk, r_index, str(campaign.uuid))
 
+    remaining_r_indexes = list(campaign.get_remaining_recipients_indexes())
+
+    # TODO Group by destination domain?
     # TODO time limit on the chord somehow, something like the max a send task
     # can retry for, ala 3 days or something.
-    (group(campaign._handler.s(r_vars, t_vars, campaign_type, campaign_pk, r_index, str(campaign.uuid))
-     for r_index, r_vars in enumerate(campaign.get_template_vars()))
-     | check_send_retvals.s(campaign_type, campaign_pk)
-     )()
 
-    #partial = campaign._handler.s(**t_vars)
-    #partial = test_task.s(**t_vars)
-
-    #(chunks(partial, tuple(campaign.get_template_vars()), 10) | check_send_retvals.s(campaign))()
-    #(chunks(partial, tuple(campaign.get_template_vars()), 10) | test_task.s(campaign)).apply_async()
-
-    #ch = (test_task.chunks(tuple(campaign.get_template_vars()), 10) | test_task_ret.s(campaign))
-    #r = ch()
-
-    #g = group(test_task.s(r,t) for r, t in campaign.get_template_vars())
-    #group(test_task.s(r, t) for r, t in campaign.get_template_vars())()
-    #r = g.delay()
-    #ch = (g | test_task_ret.s(campaign))
-    #r = ch()
+    if len(remaining_r_indexes) > 0:
+        #chord(get_handlers())(check_send_retvals.subtask((campaign_type, campaign_pk, remaining_r_indexes)))
+        group(get_handlers())()
 
     campaign.mark_queued()
     logger.info("Completed queueing Campaign '%s'", campaign)
@@ -113,27 +56,17 @@ def queue(campaign_type, campaign_pk):
 
 
 @task
-def check_send_retvals(rvs, campaign_type, campaign_pk):
+def check_send_retvals(rvs, campaign_type, campaign_pk, r_indexes):
     campaign = get_campaign(campaign_type, campaign_pk)
 
-    for x, rv in enumerate(rvs):
-        r = campaign.recipients[x]
+    for x, r_index in enumerate(r_indexes):
+        rv = rvs[x]
+        r = campaign.recipients[r_index]
 
-        if rv:
-            # TODO This probably belongs in the handle function
-            # TODO MTA response goes here
-            #r.append_log(success=True, smtp_msg='200 Fake OK')
-            #campaign.incr_success_count()
-
-            logger.debug("Campaign '%s': Was able to send message to '%s'", campaign, r)
-        else:
-            # TODO This probably belongs in the handle function
-            # TODO MTA response goes here (bounceback, etc)
-            #r.append_log(success=False, smtp_msg='400 Fake Try Again Later')
-            #campaign.incr_failure_count()
-
-            # TODO Put error in DB, possibly email as bad depending on error
+        if not rv:
             logger.error("Campaign '%s': Was not able to send message to '%s'", campaign, r)
+        #else:
+        #    logger.debug("Campaign '%s': Was able to send message to '%s'", campaign, r)
 
     logger.info("Completed sending Campaign '%s'", campaign)
     campaign.mark_completed()

@@ -104,7 +104,19 @@ class EmailCampaign(cmodels.BaseCampaign):
     recipients = m.ListField(m.EmbeddedDocumentField(EmailRecipient))
 
     campaign_type = 'emails'
-    _handler = etasks.handle_email
+
+    _handler = etasks.prepare_message
+    #_handler_cache = None
+
+    #@property
+    #def _handler(self):
+    #    if not self._handler_cache:
+    #        self._handler_cache = etasks.PrepareMessage()
+    #    return self._handler_cache
+
+    #def __init__(self, *args, **kwargs):
+    #    super(EmailCampaign, self).__init__(*args, **kwargs)
+    #    self._handler = etasks.PrepareMessage()
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):
