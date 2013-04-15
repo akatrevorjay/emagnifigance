@@ -21,7 +21,7 @@ class EnvelopeEmailField(m.StringField):
 
 
 class EmailRecipientStatus(cmodels.BaseRecipientStatus):
-    _repr_vars = ['email']
+    _repr_vars = ['email_address']
     email_address = m.EmailField(unique=True, required=True)
 
 

@@ -3,6 +3,8 @@ from lamson.routing import route, route_like, stateless
 from config.settings import relay, router_defaults, unsubscribe_queue
 from lamson import view
 from emag.emails.tasks2 import handle_unsubscribe
+#from lamson.bounce import bounce_to
+#from app.handlers import bounce
 
 
 @route("unsub-(campaign_pk)-(r_index)@(host)", campaign_pk="\d{8,64}", r_index="\d{1,8}")

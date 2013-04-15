@@ -2,13 +2,16 @@ import logging
 from lamson.routing import route, route_like, stateless
 from config.settings import relay
 from lamson import view
-
 from lamson.server import SMTPError
 import re
+#from lamson.bounce import bounce_to
+#from app.handlers import bounce
+
 
 
 #@route('(address)@(host)', address='.+', host='(.+\.|)(?!emagnifigance\.net)')
 @route('(address)@(host)', address='.+', host='.+')
+#@bounce_to(soft=bounce.BOUNCED_SOFT, hard=bounce.BOUNCED_HARD)
 def START(message, address=None, host=None):
     m = re.match(r'^(.+\.|)(emagnifigance\.net|localhost)$', host, re.IGNORECASE)
     if m:

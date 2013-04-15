@@ -1,7 +1,9 @@
 import logging
 from lamson.routing import route, route_like, stateless
 from config.settings import relay, abuse_queue
-from lamson import view
+#from lamson import view
+#from lamson.bounce import bounce_to
+#from app.handlers import bounce
 
 
 #from . import fbl
@@ -39,6 +41,7 @@ from lamson import view
 
 
 @route("(address)@(host)", address="(abuse|postmaster)")
+#@bounce_to(soft=bounce.BOUNCED_SOFT, hard=bounce.BOUNCED_HARD)
 def START(message, address=None, host=None):
     abuse_queue.push(message)
     return START

@@ -1,20 +1,22 @@
+
 from celery import Task
 from celery.task import periodic_task
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from django.conf import settings
 
+import os
 import time
+from datetime import timedelta
 from email import message_from_string
+import dkim
 #import email.message
 #from email.message import Message
 #from marrow.mailer.message import Message
 #import email.parser
 
+#from .documents import EmailCampaign
 from emag.campaign.tasks import handle_template, get_campaign
-
-import os
-import dkim
 
 
 #from slimta.relay.smtp.mx import MxSmtpRelay as MxSmtpRelayBase
@@ -22,8 +24,8 @@ import dkim
 #    pass
 
 
-#from .documents import EmailCampaign
-from datetime import timedelta
+class RecipientBlockedError(Exception):
+    pass
 
 
 @periodic_task(run_every=timedelta(minutes=1))
@@ -263,6 +265,9 @@ class SendMessage(Task):
 
         ret = False
         try:
+            if r.status.is_blocked:
+                raise RecipientBlockedError('Recipient is blocked.')
+
             ret = self.relay.attempt(envelope, attempts)
 
             # TODO Get real reply smtp_msg for success

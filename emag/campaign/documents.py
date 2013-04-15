@@ -57,6 +57,23 @@ class BaseRecipientStatus(ReprMixIn, CreatedModifiedDocMixIn, m.Document):
         entry_obj.save()
         self.update(push__log=entry_obj)
 
+        blocked = kwargs.get('blocked')
+        if blocked is not None:
+            if blocked:
+                logger.warning('Recipient "%s" is now blocked due to log: %s', self, kwargs)
+                self.update(set__status='blocked')
+
+                #campaign = kwargs.get('campaign')
+                #if campaign:
+                #    self.update(push__user_status={campaign.user_pk: 'blocked'})
+            else:
+                logger.warning('Recipient "%s" is now unblocked due to log: %s', self, kwargs)
+                self.update(unset__status=True)
+
+                #campaign = kwargs.get('campaign')
+                #if campaign:
+                #    self.update(pull__user_status={campaign.user_pk: 'blocked'})
+
 
 class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     meta = dict(abstract=True)
