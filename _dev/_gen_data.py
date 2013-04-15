@@ -29,16 +29,16 @@ def do_email():
     cur_type = 'Email'
 
     ec = EmailCampaign(name=TEST_NAME % cur_type, user_pk=u_trevorj.pk)
-    for i in xrange(1):
+    for i in xrange(10):
         #ec.recipients.append(
         #    EmailRecipient(email='"Trevor Joynson" <trevorj@ctmsohio.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
         #)
         ec.recipients.append(
             EmailRecipient(email='"Trevor Joynson" <trevorj@locsol.net>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
         )
-        ec.recipients.append(
-            EmailRecipient(email='"Trevor Joynson" <trevorjoynson@gmail.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
-        )
+        #ec.recipients.append(
+        #    EmailRecipient(email='"Trevor Joynson" <trevorjoynson@gmail.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+        #)
         #ec.recipients.append(
         #    EmailRecipient(email='"Eric Cooper" <ecooper@ctmsohio.com>', context=dict(first_name='Eric%d' % i, last_name='Cooper%d' % i)),
         #)

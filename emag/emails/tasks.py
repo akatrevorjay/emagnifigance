@@ -178,40 +178,65 @@ class PrepareMessage(Task):
 prepare_message = PrepareMessage()
 
 
+#RELAY = None
+import gevent
+
+
 class SendMessage(Task):
     _relay = None
 
     @property
     def relay(self):
-        try:
-            from slimta.relay.smtp.client import SmtpRelayClient
-            from slimta.relay.smtp.mx import MxSmtpRelay
-        except ImportError as e:
-            logger.exception("ImportError: %s", e, exc=e)
+        count = 0
+        while count < 5:
+            try:
+                from slimta.relay.smtp.client import SmtpRelayClient
+                from slimta.relay.smtp.mx import MxSmtpRelay
+                break
+            except ImportError as e:
+                logger.exception("ImportError: %s", e)
+            count += 1
+            gevent.sleep(1)
 
+        #global RELAY
+        #if not RELAY:
+        #    RELAY = MxSmtpRelay(
         if not self._relay:
             self._relay = MxSmtpRelay(
                 #pool_size=2,
                 pool_size=8,
                 ##tls=tls,
                 ehlo_as=settings.SERVER_NAME,
+
                 #connect_timeout=20.0,
                 #command_timeout=10.0,
                 #data_timeout=20.0,
+                #idle_timeout=0.0,
+
+                connect_timeout=20.0,
+                command_timeout=10.0,
+                data_timeout=20.0,
                 #idle_timeout=10.0,
+                idle_timeout=60.0,
             )
         return self._relay
+        #return RELAY
 
     def run(self, sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index):
-        try:
-            from slimta.relay.smtp.client import SmtpRelayClient
-            from slimta.core import SlimtaError
-            #from slimta.smtp import ConnectionLost, BadReply
-            from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
-            from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
-            #from slimta.relay.smtp.mx import NoDomainError
-        except ImportError as e:
-            logger.exception("ImportError: %s", e, exc=e)
+        count = 0
+        while count < 5:
+            try:
+                from slimta.relay.smtp.client import SmtpRelayClient
+                from slimta.core import SlimtaError
+                #from slimta.smtp import ConnectionLost, BadReply
+                from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
+                from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
+                #from slimta.relay.smtp.mx import NoDomainError
+                break
+            except ImportError as e:
+                logger.exception("ImportError: %s", e)
+            count += 1
+            gevent.sleep(1)
 
         #recipient_address = r_vars['email_address']
         #sender_address = t_vars['sender_address']
@@ -229,6 +254,7 @@ class SendMessage(Task):
         #logger.info("message=%s", message)
         #logger.info("envelope=%s", envelope)
         #logger.info("envelope_flat=%s", envelope.flatten())
+        gevent.sleep(0)
 
         """ Attempt to send """
 
@@ -291,9 +317,11 @@ class SendMessage(Task):
 
                 # Increase campaign fail count, as we're giving up
                 campaign.incr_failure_count()
+                gevent.sleep(0)
                 return False
                 #raise e
 
+        gevent.sleep(0)
         return ret
 
 send_message = SendMessage()

@@ -13,6 +13,10 @@ middleware here, or combine a Django application with an application of another
 framework.
 
 """
+from gevent import monkey
+#monkey.patch_socket()
+monkey.patch_all(thread=False, dns=False, select=False, aggressive=False)
+
 import os
 
 # We defer to a DJANGO_SETTINGS_MODULE already in the environment. This breaks

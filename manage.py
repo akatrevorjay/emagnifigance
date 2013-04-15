@@ -6,7 +6,9 @@ import sys
 if __name__ == "__main__":
     from gevent import monkey
     #monkey.patch_socket()
-    monkey.patch_all(thread=False, dns=False, select=False, aggressive=False)
+    #monkey.patch_all(thread=False)
+    #monkey.patch_all(thread=False, dns=False, select=False, aggressive=False)
+    monkey.patch_all()
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "emag.settings")
 
