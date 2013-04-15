@@ -289,6 +289,8 @@ class SendMessage(Task):
                     bounce = True
                 else:
                     retry = True
+            elif isinstance(e, RecipientBlockedError):
+                bounce = True
             else:
                 retry = True
 
