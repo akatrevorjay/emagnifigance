@@ -6,7 +6,6 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from django.template import Context
 #import emag.emails.tasks
-import emag.sms.tasks
 
 
 def get_campaign(campaign_type, pk=None, **kwargs):
@@ -18,8 +17,9 @@ def get_campaign(campaign_type, pk=None, **kwargs):
     if campaign_type == 'emails':
         from emag.emails.documents import EmailCampaign
         return EmailCampaign.objects.get(**kwargs)
-    #elif campaign_type == 'sms':
-    #    campaign = SmsCampaign.
+    elif campaign_type == 'sms':
+        from emag.sms.documents import SmsCampaign
+        return SmsCampaign.objects.get(**kwargs)
     else:
         raise ValueError("Unknown Campaign type '%s'" % campaign_type)
 
@@ -43,6 +43,11 @@ def queue(campaign_type, campaign_pk):
     remaining_r_indexes = list(campaign.get_remaining_recipients_indexes())
 
     # TODO Group by destination domain?
+    """
+    # TODO Soon as X emails to destination domain are blocked in a row on
+    # a server, do not send emails to that domain from that server again for X
+    # amount of time, let's say an hour.
+    """
     # TODO time limit on the chord somehow, something like the max a send task
     # can retry for, ala 3 days or something.
 
@@ -96,23 +101,3 @@ def handle_template(r_vars, t_vars):
         ret['subject'] = subject.render(r_vars)
 
     return ret
-
-
-"""
-# TODO Soon as X emails to destination domain are blocked in a row on
-# a server, do not send emails to that domain from that server again for X
-# amount of time, let's say an hour.
-"""
-
-
-@task(max_retries=3)
-def handle_sms(ctx, body=None, sender=None, context=None):
-    recipient = ctx['phone']
-    tmpl = handle_template(ctx, body=body, context=context)
-    logger.info("Sending SMS for '%s' => '%s' [%s]", sender, recipient, tmpl)
-    try:
-        emag.sms.tasks.send_sms(recipient, tmpl['body'], sender)
-    except Exception, e:
-        # Retry this from another node
-        raise handle_sms.retry(exc=e)
-    return True

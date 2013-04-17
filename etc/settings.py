@@ -242,6 +242,8 @@ PROJECT_APPS = (
     'emag.sms',
 )
 INSTALLED_APPS += PROJECT_APPS
+#AUTH_PROFILE_MODULE = 'emag.
+
 
 #
 # MongoDB (MongoEngine)
@@ -470,11 +472,16 @@ CELERY_IMPORTS = (
 
 CELERY_ROUTES = {
     'emag.campaign.tasks.queue': {'queue': 'campaigns'},
-    'emag.emails.tasks.Handle_Email': {'queue': 'emails'},
+
     'emag.emails.tasks.PrepareMessage': {'queue': 'emails'},
     'emag.emails.tasks.SendMessage': {'queue': 'emails'},
+
     'emag.emails.tasks2.handle_fbl': {'queue': 'emails'},
-    'emag.campaign.tasks.handle_sms': {'queue': 'sms'},
+    'emag.emails.tasks2.handle_bounce': {'queue': 'emails'},
+
+    'emag.sms.tasks.PrepareMessage': {'queue': 'sms'},
+    'emag.sms.tasks.SendMessage': {'queue': 'sms'},
+
 }
 
 #CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}

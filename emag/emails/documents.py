@@ -1,8 +1,10 @@
+
+import logging
+logger = logging.getLogger(__name__)
+from mongoengine import signals
 import mongoengine as m
-from mongoengine.signals import post_save
 import emag.campaign.documents as cmodels
 from django.template import Template
-import logging
 import re
 
 
@@ -123,4 +125,4 @@ class EmailCampaign(cmodels.BaseCampaign):
         return super(EmailCampaign, document).post_save(sender, document, **kwargs)
 
 
-post_save.connect(EmailCampaign.post_save, sender=EmailCampaign)
+signals.post_save.connect(EmailCampaign.post_save, sender=EmailCampaign)
