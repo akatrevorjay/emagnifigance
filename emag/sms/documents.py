@@ -16,7 +16,8 @@ class PhoneNumberField(m.StringField):
             self.error('Invalid Phone Number: %s' % value)
         super(PhoneNumberField, self).validate(value)
 
-    def _clean(self, phone):
+    @classmethod
+    def clean(cls, phone):
         phone = unicode(phone)
         m = PhoneNumberField.REGEX.match(phone)
         if not m:
@@ -30,7 +31,7 @@ class PhoneNumberField(m.StringField):
     #    return super(PhoneNumberField, self).to_python(value)
 
     def to_mongo(self, value):
-        value = self._clean(value)
+        value = self.clean(value)
         return super(PhoneNumberField, self).to_mongo(value)
 
 
@@ -73,14 +74,14 @@ class SmsTemplate(cmodels.BaseTemplate):
 
     def get_template_vars(self):
         ret = super(SmsTemplate, self).get_template_vars()
-        sender = unicode(self.sender).replace('+', '').replace('-', '')
         ret.update(dict(
-            sender=sender,
+            sender=self.sender,
         ))
         return ret
 
 
 import emag.sms.tasks as stasks
+from .models import SmsUserProfile
 
 
 class SmsCampaign(cmodels.BaseCampaign):
@@ -101,6 +102,15 @@ class SmsCampaign(cmodels.BaseCampaign):
     #def __init__(self, *args, **kwargs):
     #    super(SmsCampaign, self).__init__(*args, **kwargs)
     #    self._handler = stasks.PrepareMessage()
+
+    def save(self, *args, **kwargs):
+        template = getattr(self, 'template', None)
+        if template and not template.sender:
+            user = self.user
+            if user:
+                sms_user = SmsUserProfile.objects.get(user=user)
+                template.sender = sms_user.default_sender
+        return super(SmsCampaign, self).save(*args, **kwargs)
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):

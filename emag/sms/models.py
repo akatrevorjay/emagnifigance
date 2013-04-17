@@ -10,7 +10,7 @@ User
 
 class SmsUserProfile(models.Model):
     user = models.OneToOneField(User)
-    default_sender = models.CharField(null=True)
+    default_sender = models.CharField(null=True, max_length=64)
 
     def __unicode__(self):
         return "%s's sms user profile" % self.user

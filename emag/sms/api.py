@@ -15,6 +15,7 @@ from datetime import timedelta
 from emag.emails.api import PerUserAuthorizationMixIn, DisallowUpdateMixIn, DisallowDeleteMixIn, PerUserCreateReadAuthorization, PerUserReadOnlyAuthorization, \
     LogEntryResource, RecipientLogEntryResource
 
+
 """
 Resources
 """
