@@ -43,7 +43,7 @@ class SmsRecipientStatus(cmodels.BaseRecipientStatus):
 class SmsRecipient(cmodels.BaseRecipient):
     _repr_vars = ['phone']
 
-    phone = PhoneNumberField()
+    phone = PhoneNumberField(required=True)
 
     def get_template_vars(self):
         ret = super(SmsRecipient, self).get_template_vars()
@@ -70,7 +70,7 @@ class SmsRecipient(cmodels.BaseRecipient):
 class SmsTemplate(cmodels.BaseTemplate):
     _repr_vars = ['sender']
 
-    sender = PhoneNumberField()
+    sender = PhoneNumberField(required=True)
 
     def get_template_vars(self):
         ret = super(SmsTemplate, self).get_template_vars()
@@ -85,8 +85,8 @@ from .models import SmsUserProfile
 
 
 class SmsCampaign(cmodels.BaseCampaign):
-    template = m.EmbeddedDocumentField(SmsTemplate)
-    recipients = m.ListField(m.EmbeddedDocumentField(SmsRecipient))
+    template = m.EmbeddedDocumentField(SmsTemplate, required=True)
+    recipients = m.ListField(m.EmbeddedDocumentField(SmsRecipient, required=True), required=True)
 
     campaign_type = 'sms'
 

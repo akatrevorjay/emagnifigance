@@ -30,7 +30,7 @@ class EmailRecipientStatus(cmodels.BaseRecipientStatus):
 class EmailRecipient(cmodels.BaseRecipient):
     _repr_vars = ['email']
 
-    email = EnvelopeEmailField()
+    email = EnvelopeEmailField(required=True)
 
     def get_template_vars(self):
         ret = super(EmailRecipient, self).get_template_vars()
@@ -72,8 +72,8 @@ class EmailRecipient(cmodels.BaseRecipient):
 class EmailTemplate(cmodels.BaseTemplate):
     _repr_vars = ['subject']
 
-    sender = EnvelopeEmailField()
-    subject = m.StringField(max_length=255)
+    sender = EnvelopeEmailField(required=True)
+    subject = m.StringField(max_length=255, required=True)
 
     #def get_message(self):
     #    pass
@@ -102,8 +102,8 @@ import emag.emails.tasks as etasks
 
 
 class EmailCampaign(cmodels.BaseCampaign):
-    template = m.EmbeddedDocumentField(EmailTemplate)
-    recipients = m.ListField(m.EmbeddedDocumentField(EmailRecipient))
+    template = m.EmbeddedDocumentField(EmailTemplate, required=True)
+    recipients = m.ListField(m.EmbeddedDocumentField(EmailRecipient, required=True), required=True)
 
     campaign_type = 'emails'
 

@@ -1,5 +1,5 @@
 
-from celery import task, Task
+from celery import Task
 from celery.task import periodic_task
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
@@ -8,24 +8,12 @@ from datetime import timedelta
 #from .documents import SmsCampaign
 from emag.campaign.tasks import handle_template, get_campaign
 from django_twilio.client import twilio_client
+from twilio import TwilioException, TwilioRestException
 
 
 def print_phone_numbers():
     for number in twilio_client.phone_numbers.iter():
         print number.friendly_name
-
-
-@task(max_retries=3)
-def handle_sms(ctx, body=None, sender=None, context=None):
-    recipient = ctx['phone']
-    tmpl = handle_template(ctx, body=body, context=context)
-    logger.info("Sending SMS for '%s' => '%s' [%s]", sender, recipient, tmpl)
-    try:
-        prepare_message(recipient, tmpl['body'], sender)
-    except Exception, e:
-        # Retry this from another node
-        raise handle_sms.retry(exc=e)
-    return True
 
 
 class RecipientBlockedError(Exception):
@@ -103,22 +91,41 @@ class SendMessage(Task):
         campaign = get_campaign(campaign_type, campaign_pk)
         r = campaign.recipients[r_index]
 
-        ret = False
         try:
             if r.status.is_blocked:
                 raise RecipientBlockedError('Recipient is blocked.')
 
-            ret = twilio_client.sms.messages.create(
+            res = twilio_client.sms.messages.create(
                 to=str(recipient),
                 from_=str(sender),
                 body=str(body),
             )
 
-            # TODO Get real reply smtp_msg for success
-            r.append_log(success=True, msg=str(ret))
+            ''' Example result:
+            {
+                "sid": "SM3633d4ad5ceead7e315bf9df880c2d02",
+                "date_created": "Wed, 17 Apr 2013 22:38:39 +0000",
+                "date_updated": "Wed, 17 Apr 2013 22:38:39 +0000",
+                "date_sent":null,
+                "account_sid": "ACa7c819dd50324bbe628797e4012d36d8",
+                "to": "+13309905591",
+                "from": "+13307543259",
+                "body": "Hi Jayme\n\tThis is a sample text message",
+                "status": "queued",
+                "direction": "outbound-api",
+                "api_version": "2010-04-01",
+                "price":null,"price_unit": "USD",
+                "uri": "\/2010-04-01\/Accounts\/ACa7c819dd50324bbe628797e4012d36d8\/SMS\/Messages\/SM3633d4ad5ceead7e315bf9df880c2d02.json",
+            }
+            '''
+
+            r.append_log(success=True, sid=res.sid, uri=res.uri, status=res.status, msg='Ok')
+            #r.append_log(success=True, sid=res.sid, status=res.status, msg='Ok')
             campaign.incr_success_count()
 
-        except (Exception, ) as e:
+            return True
+
+        except (TwilioException, TwilioRestException, Exception) as e:
             bounce = False
             retry = True
 
@@ -149,7 +156,5 @@ class SendMessage(Task):
                 campaign.incr_failure_count()
                 return False
                 #raise e
-
-        return ret
 
 send_message = SendMessage()

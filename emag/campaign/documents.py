@@ -127,7 +127,7 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
 class BaseTemplate(ReprMixIn, m.EmbeddedDocument):
     meta = dict(abstract=True)
 
-    template = m.StringField()
+    template = m.StringField(required=True)
     context = m.DictField()
 
     def get_template_vars(self):
@@ -151,7 +151,7 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     """
 
     slug = m.StringField()
-    uuid = m.UUIDField(binary=False)
+    uuid = m.UUIDField(binary=False, required=True)
 
     def save(self, *args, **kwargs):
         # Automagic slug generation
@@ -171,7 +171,7 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     User
     """
 
-    user_pk = m.IntField()
+    user_pk = m.IntField(required=True)
 
     @property
     def user(self):
