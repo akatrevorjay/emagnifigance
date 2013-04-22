@@ -61,7 +61,7 @@ def do_sms():
     global SmsRecipient, SmsTemplate, SmsCampaign, TEST_NAME, TEST_DESC, TEST_RECIPIENT_COUNT, u_trevorj
 
     cur_type = 'Sms'
-    sc = SmsCampaign(name=TEST_NAME % cur_type)
+    sc = SmsCampaign(name=TEST_NAME % cur_type, user_pk=u_trevorj.pk)
     for i in xrange(TEST_RECIPIENT_COUNT):
         sc.recipients.append(
             SmsRecipient(phone='+1-330-353-8738', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),

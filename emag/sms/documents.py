@@ -70,7 +70,13 @@ class SmsRecipient(cmodels.BaseRecipient):
 class SmsTemplate(cmodels.BaseTemplate):
     _repr_vars = ['sender']
 
+    template = m.StringField(max_length=160, required=True)
     sender = PhoneNumberField(required=True)
+
+    #def save(self, *args, **kwargs):
+    #    if self.template and len(self.template) > 160:
+    #        raise ValueError("template is over 160 characters")
+    #    super(SmsTemplate, self).save(*args, **kwargs)
 
     def get_template_vars(self):
         ret = super(SmsTemplate, self).get_template_vars()
