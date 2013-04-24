@@ -70,7 +70,7 @@ class SmsRecipient(cmodels.BaseRecipient):
 class SmsTemplate(cmodels.BaseTemplate):
     _repr_vars = ['sender']
 
-    template = m.StringField(max_length=160, required=True)
+    template = m.StringField(required=True)
     sender = PhoneNumberField(required=True)
 
     #def save(self, *args, **kwargs):

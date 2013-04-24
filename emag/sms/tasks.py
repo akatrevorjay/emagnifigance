@@ -28,6 +28,12 @@ def check_for_completed():
         campaign.check_completed()
 
 
+def chunks(s, n):
+    """Produce `n`-character chunks from `s`."""
+    for start in range(0, len(s), n):
+        yield s[start:start + n]
+
+
 class PrepareMessage(Task):
     _policies = None
 
@@ -67,18 +73,23 @@ class PrepareMessage(Task):
         logger.info("body=%s", body)
 
         """ Attempt to send """
-        send_message.apply_async((sender, recipient, body, campaign_type, campaign_pk, r_index))
+
+        sent_per_total = len(body) / 160
+        sent_per_index = 0
+        for chunk in chunks(body, 160):
+            sent_per_index += 1
+            send_message.apply_async((sender, recipient, chunk, campaign_type, campaign_pk, r_index, sent_per_index, sent_per_total))
 
 prepare_message = PrepareMessage()
 
 
 class SendMessage(Task):
-    def run(self, sender, recipient, body, campaign_type, campaign_pk, r_index):
+    def run(self, sender, recipient, body, campaign_type, campaign_pk, r_index, sent_per_index, sent_per_total):
         attempts = self.request.retries
 
         """ Log """
 
-        logger.info("Sending sms for '%s'=>'%s'", sender, recipient)
+        logger.info("Sending sms for '%s'=>'%s' [%d/%d]", sender, recipient, sent_per_index, sent_per_total)
 
         """ Debug """
 
@@ -90,6 +101,10 @@ class SendMessage(Task):
         """ Attempt to send """
 
         campaign = get_campaign(campaign_type, campaign_pk)
+
+        if campaign.sent_per_max < sent_per_total:
+            campaign.sent_per_max = sent_per_total
+
         r = campaign.recipients[r_index]
 
         try:
@@ -124,7 +139,12 @@ class SendMessage(Task):
             #r.append_log(success=True, sid=res.sid, uri=res.uri, status=res.status, msg='Ok')
             #r.append_log(success=True, sid=res.sid, status=res.status, msg='Ok')
             #campaign.incr_success_count()
-            r.append_log(sid=res.sid, msg=res.status)
+            r.append_log(
+                sid=res.sid,
+                msg=res.status,
+                index=sent_per_index,
+                out_of=sent_per_total,
+            )
 
             return True
 
@@ -135,9 +155,19 @@ class SendMessage(Task):
             if isinstance(e, TwilioRestException):
                 bounce = True
 
-            r.append_log(success=False, bounce=bounce, retry=retry, msg='Error: %s' % e)
+            if bounce:
+                retry = False
 
-            logger.error('Got error sending (bounce=%s, retry=%s): %s', bounce, retry, e)
+            r.append_log(
+                success=False,
+                bounce=bounce,
+                retry=retry,
+                msg='Error: %s' % e,
+                index=sent_per_index,
+                out_of=sent_per_total,
+            )
+
+            logger.error('Got error sending (bounce=%s, retry=%s): %s', bounce, retry, e.message)
 
             if retry and attempts < 10:
                 # Retry this from another node

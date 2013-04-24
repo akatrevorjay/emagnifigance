@@ -7,6 +7,7 @@ from tastypie_mongoengine import resources, fields
 #from tastypie.resources import ModelResource
 #from emag.smss.documents import SmsRecipient, SmsTemplate, SmsCampaign
 from . import documents
+from emag.campaign.documents import RecipientLogEntry
 #from emag.campaign.api import RecipientResource, TemplateResource, CampaignResource
 #from django.conf.urls import url
 from django.utils import timezone
@@ -59,12 +60,48 @@ class SmsRecipientResource(resources.MongoEngineResource):
         #cache = cache.NoCache()
         excludes = ('_status', )
 
+        allowed_methods = ['get']
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class StatusSmsRecipientLogResource(resources.MongoEngineResource):
+    msg = tfields.CharField(readonly=True)
+
+    class Meta:
+        resource_name = 'sms_recipient_log'
+        object_class = RecipientLogEntry
+        #cache = cache.NoCache()
+        excludes = ('modified', 'id', )
+
+        allowed_methods = ['get']
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class StatusSmsRecipientResource(SmsRecipientResource):
+    #log = fields.EmbeddedListField(StatusSmsRecipientLogResource, attribute='log', full=True, readonly=True)
+
+    class Meta:
+        resource_name = 'sms_recipient'
+        object_class = documents.SmsRecipient
+        #cache = cache.NoCache()
+        excludes = ('_status', 'context', 'success')
+
+        allowed_methods = ['get']
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
 
 class SmsTemplateResource(resources.MongoEngineResource):
     class Meta:
         object_class = documents.SmsTemplate
         #cache = cache.NoCache()
         excludes = ('slug', )
+
+        allowed_methods = ['get']
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
 
 
 class SmsCampaignResource(resources.MongoEngineResource):
@@ -200,15 +237,14 @@ class SmsCampaignStatusResource(resources.MongoEngineResource):
     #                 for r in bundle.obj.recipients
     #                 if r.success is False])
 
+    #recipients = fields.EmbeddedListField(SmsRecipientResource, attribute='recipients', full=True)
+    #failed_recipients = fields.EmbeddedListField(StatusSmsRecipientResource, attribute='failed_recipients', full=True, readonly=True)
+
     failed_recipients = tfields.ListField(readonly=True)
+    #failed_recipients = tfields.DictField(readonly=True)
 
     def dehydrate_failed_recipients(self, bundle):
-        # TODO Also show FBL hits
-        #return [dict(sms=r.sms, log=[l._data for l in r.log if not l.success])
-        #return [dict(sms=r.sms, log=r.log)
-        return [dict(phone=r.phone)
-                for r in bundle.obj.recipients
-                if r.success is False]
+        return [dict(phone=r.phone) for r in bundle.obj.failed_recipients]
 
     class Meta:
         resource_name = 'sms_campaign_status'

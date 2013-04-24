@@ -93,10 +93,10 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
 
     def append_log(self, **kwargs):
         success = kwargs.get('success')
-        if success is not None and self.success != success:
+        if success in [True, False] and self.success != success:
             #self._instance.__class__.objects(pk=self._instance.pk).filter(recipients___status=self.status).update(set__recipients__S__success=True)
             index = self._instance.recipients.index(self)
-            self._instance.update(**{'set__recipients__%d__success' % index: True})
+            self._instance.update(**{'set__recipients__%d__success' % index: success})
 
         kwargs['campaign'] = self._instance.pk
         self.status.append_log(**kwargs)
@@ -248,9 +248,16 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     #recipients = m.ListField(blah)
 
     @property
+    def failed_recipients(self):
+        for r in self.recipients:
+            if r.success:
+                continue
+            yield r
+
+    @property
     def total(self):
         """Returns recipients count"""
-        return len(self.recipients)
+        return len(self.recipients) * self.sent_per_max
 
     @property
     def current(self):
@@ -346,6 +353,15 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     @property
     def sent_failure_count(self):
         return self.state.get('sent_failure_count', 0)
+
+    @property
+    def sent_per_max(self):
+        return self.state.get('sent_per_max', 1)
+
+    @sent_per_max.setter
+    def sent_per_max(self, value):
+        if value > self.sent_per_max:
+            self.update(set__state__sent_per_max=value)
 
     @property
     def sent_total(self):
