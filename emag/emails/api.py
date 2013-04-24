@@ -266,6 +266,13 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
         return state
 
+    user = tfields.CharField(readonly=True)
+
+    def dehydrate_user(self, bundle):
+        user = getattr(bundle.obj, 'user', None)
+        if user:
+            return user.username
+
     # GRR Invalid tag name on XML
     #failed_recipients = tfields.DictField(readonly=True)
     #
