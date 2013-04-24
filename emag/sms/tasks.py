@@ -4,6 +4,7 @@ from celery.task import periodic_task
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from datetime import timedelta
+import math
 
 #from .documents import SmsCampaign
 from emag.campaign.tasks import handle_template, get_campaign
@@ -74,7 +75,7 @@ class PrepareMessage(Task):
 
         """ Attempt to send """
 
-        sent_per_total = len(body) / 160
+        sent_per_total = math.ceil(len(body) / 160.0)
         sent_per_index = 0
         for chunk in chunks(body, 160):
             sent_per_index += 1
