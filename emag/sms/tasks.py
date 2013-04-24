@@ -9,6 +9,7 @@ from datetime import timedelta
 from emag.campaign.tasks import handle_template, get_campaign
 from django_twilio.client import twilio_client
 from twilio import TwilioException, TwilioRestException
+from emag import settings
 
 
 def print_phone_numbers():
@@ -99,6 +100,7 @@ class SendMessage(Task):
                 to=str(recipient),
                 from_=str(sender),
                 body=str(body),
+                status_callback='%s%s-%s/' % (settings.TWILIO_STATUS_CALLBACK_URL, campaign_pk, r_index),
             )
 
             ''' Example result:
@@ -119,15 +121,19 @@ class SendMessage(Task):
             }
             '''
 
-            r.append_log(success=True, sid=res.sid, uri=res.uri, status=res.status, msg='Ok')
+            #r.append_log(success=True, sid=res.sid, uri=res.uri, status=res.status, msg='Ok')
             #r.append_log(success=True, sid=res.sid, status=res.status, msg='Ok')
-            campaign.incr_success_count()
+            #campaign.incr_success_count()
+            r.append_log(sid=res.sid, msg=res.status)
 
             return True
 
         except (TwilioException, TwilioRestException, Exception) as e:
             bounce = False
             retry = True
+
+            if isinstance(e, TwilioRestException):
+                bounce = True
 
             r.append_log(success=False, bounce=bounce, retry=retry, msg='Error: %s' % e)
 

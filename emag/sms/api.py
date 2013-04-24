@@ -199,7 +199,7 @@ class SmsCampaignStatusResource(resources.MongoEngineResource):
         # TODO Also show FBL hits
         #return [dict(sms=r.sms, log=[l._data for l in r.log if not l.success])
         #return [dict(sms=r.sms, log=r.log)
-        return [dict(sms=r.sms)
+        return [dict(phone=r.phone)
                 for r in bundle.obj.recipients
                 if r.success is False]
 

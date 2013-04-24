@@ -27,5 +27,5 @@ urlpatterns = patterns(
     url(r'^emails/', include('emag.emails.urls')),
 
     # SMS
-    #url(r'^sms/', include('emag.sms.urls')),
+    url(r'^sms/', include('emag.sms.urls')),
 )

@@ -419,9 +419,29 @@ INSTALLED_APPS += ('django_extensions', )
 # django-twilio
 #
 INSTALLED_APPS += ('django_twilio', )
+
+#TWILIO_DEFAULT_CALLERID = 'NNNNNNNNNN'
+
 TWILIO_ACCOUNT_SID = 'ACa7c819dd50324bbe628797e4012d36d8'
 TWILIO_AUTH_TOKEN = '77355d83cf092fe32c951827d0214da4'
-#TWILIO_DEFAULT_CALLERID = 'NNNNNNNNNN'
+
+TWILIO_STATUS_CALLBACK_URL = 'https://emag-api.localhostsolutions.com/sms/twilio/status/'
+
+TWILIO_TEST_ACCOUNT_SID = 'AC572fcf6953f365ccde18d8689f684b76'
+TWILIO_TEST_AUTH_TOKEN = '1d353da222668a0917c65cfcb620ab00'
+
+TWILIO_TEST_SMS_NUMBERS_FROM = dict(
+    invalid='+15005550001',
+    msg_queue_full='+15005550008',
+    valid='+15005550006',
+)
+
+TWILIO_TEST_SMS_NUMBERS_TO = dict(
+    invalid='+15005550001',
+    cannot_route='+15005550002',
+    blacklisted='+15005550004',
+    incapable='+15005550009',
+)
 
 ##
 ## mailchimp
