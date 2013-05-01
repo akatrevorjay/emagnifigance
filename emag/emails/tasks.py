@@ -225,7 +225,7 @@ class SendMessage(Task):
                 #idle_timeout=0.0,
 
                 connect_timeout=20.0,
-                command_timeout=10.0,
+                command_timeout=30.0,
                 data_timeout=20.0,
                 #idle_timeout=10.0,
                 idle_timeout=60.0,
@@ -346,6 +346,9 @@ class SendMessage(Task):
                 gevent.sleep(0)
                 return False
                 #raise e
+        except:
+            logger.error('Somehow got to bottom except block!?! Retrying in 330s..')
+            raise self.retry(countdown=330)
 
         gevent.sleep(0)
         return ret
