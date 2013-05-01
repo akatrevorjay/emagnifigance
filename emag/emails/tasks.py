@@ -5,6 +5,7 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 from django.conf import settings
 
+import re
 import os
 import time
 from datetime import timedelta
@@ -15,6 +16,7 @@ import dkim
 #from marrow.mailer.message import Message
 #import email.parser
 
+from emag.exceptions import EmagError, RecipientBlockedError, TestFailureError
 #from .documents import EmailCampaign
 from emag.campaign.tasks import handle_template, get_campaign
 
@@ -22,10 +24,6 @@ from emag.campaign.tasks import handle_template, get_campaign
 #from slimta.relay.smtp.mx import MxSmtpRelay as MxSmtpRelayBase
 #class MxSmtpRelay(MxSmtpRelayBase):
 #    pass
-
-
-class RecipientBlockedError(Exception):
-    pass
 
 
 @periodic_task(run_every=timedelta(minutes=1))
@@ -94,6 +92,7 @@ class PrepareMessage(Task):
 
         recipient = r_vars['email']
         recipient_address = r_vars['email_address']
+        recipient_domain = recipient_address.split('@', 1)[-1]
         sender = t_vars['sender']
         sender_address = t_vars['sender_address']
         sender_domain = sender_address.split('@', 1)[-1]
@@ -103,6 +102,16 @@ class PrepareMessage(Task):
 
         #body = tmpl['body'].encode('utf-8', 'ignore')
         body = tmpl['body'].encode('ascii', 'ignore')
+
+        """ Testing """
+
+        testing = None
+        if recipient_domain.endswith(settings.EMAIL_TEST_DOMAIN):
+            testing = 'success'
+            for k, v in settings.EMAIL_TEST_DOMAINS.iteritems():
+                if re.match(v, recipient_domain, re.IGNORECASE):
+                    testing = k
+            logger.debug("This is a test messsage: testing=%s", testing)
 
         """ Log """
 
@@ -175,7 +184,7 @@ class PrepareMessage(Task):
         #logger.info("envelope_flat=%s", envelope.flatten())
 
         """ Attempt to send """
-        send_message.apply_async((sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index))
+        send_message.apply_async((sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index, testing))
 
 prepare_message = PrepareMessage()
 
@@ -224,7 +233,7 @@ class SendMessage(Task):
         return self._relay
         #return RELAY
 
-    def run(self, sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index):
+    def run(self, sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index, testing):
         count = 0
         while count < 5:
             try:
@@ -246,6 +255,11 @@ class SendMessage(Task):
 
         attempts = self.request.retries
 
+        """ Testing """
+
+        if testing is not None:
+            logger.debug("This is a test messsage: testing=%s", testing)
+
         """ Log """
 
         logger.info("Sending email for '%s'=>'%s' [%s]", sender, recipient, subject)
@@ -265,16 +279,21 @@ class SendMessage(Task):
 
         ret = False
         try:
-            if r.status.is_blocked:
+            if r.status.is_blocked or testing == 'blocked':
                 raise RecipientBlockedError('Recipient is blocked.')
 
-            ret = self.relay.attempt(envelope, attempts)
+            if testing == 'success':
+                ret = True
+            elif testing == 'failure':
+                raise TestFailureError()
+            else:
+                ret = self.relay.attempt(envelope, attempts)
 
             # TODO Get real reply smtp_msg for success
             r.append_log(success=True, smtp_msg='200 OK')
             campaign.incr_success_count()
 
-        except (SlimtaError, Exception) as e:
+        except (SlimtaError, RecipientBlockedError, TestFailureError, Exception) as e:
             error_code = None
             bounce = False
             retry = False
@@ -289,7 +308,7 @@ class SendMessage(Task):
                     bounce = True
                 else:
                     retry = True
-            elif isinstance(e, RecipientBlockedError):
+            elif isinstance(e, (RecipientBlockedError, TestFailureError)):
                 bounce = True
             else:
                 retry = True

@@ -34,15 +34,25 @@ def do_email():
         #ec.recipients.append(
         #    EmailRecipient(email='"Trevor Joynson" <trevorj@ctmsohio.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
         #)
-        ec.recipients.append(
-            EmailRecipient(email='"Trevor Joynson" <trevorjy2@locsol.net>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
-        )
+        #ec.recipients.append(
+        #    EmailRecipient(email='"Trevor Joynson" <trevorjy2@locsol.net>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+        #)
         #ec.recipients.append(
         #    EmailRecipient(email='"Trevor Joynson" <trevorjoynson@gmail.com>', context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
         #)
         #ec.recipients.append(
         #    EmailRecipient(email='"Eric Cooper" <ecooper@ctmsohio.com>', context=dict(first_name='Eric%d' % i, last_name='Cooper%d' % i)),
         #)
+        ec.recipients.append(
+            EmailRecipient(email='"Trevor Joynson" <trevorj%s@success.test.emag>' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+        )
+        ec.recipients.append(
+            EmailRecipient(email='"Trevor Joynson" <trevorj%s@failure.test.emag>' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+        )
+        ec.recipients.append(
+            EmailRecipient(email='"Trevor Joynson" <trevorj%s@blocked.test.emag>' % i, context=dict(first_name='Trevor%d' % i, last_name='Joynson%d' % i)),
+        )
+
     ec.template = EmailTemplate(sender='"Trevor Joynson" <trevorj@emagnifigance.net>')
     ec.template.subject = 'This is a test {{ first_name }}'
     ec.template.context = dict(

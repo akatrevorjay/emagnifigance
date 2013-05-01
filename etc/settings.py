@@ -8,6 +8,16 @@ from django.conf import global_settings as gs
 #CAMPAIGN_BLOCK_SIZE = 100
 CAMPAIGN_BLOCK_SIZE = 1
 
+EMAIL_TEST_DOMAIN = 'test.emag'
+EMAIL_TEST_DOMAINS = dict(
+    success=r'^success\.',
+    failure=r'^fail(ure)?\.',
+    blocked=r'^block(ed)?\.',
+)
+
+#SMS_TEST_RECIPIENTS = dict(
+#)
+
 #
 # Get server name
 #
