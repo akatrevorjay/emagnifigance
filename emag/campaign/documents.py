@@ -300,7 +300,7 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         """Starts queueing up campaign as a background task on a worker.
         Returns an AsyncResult that can be checked for return status."""
         if self.is_started:
-            logger.warning('Campaign %s has already been started. Resending to recipients where r.success is None.')
+            logger.warning('Campaign %s has already been started. Resending to recipients where r.success is None.', self)
         self.mark_started()
         return tasks.queue.delay(self.campaign_type, self.pk)
 
