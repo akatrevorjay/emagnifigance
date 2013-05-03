@@ -176,6 +176,7 @@ LOGGING = {
     'version': 1,
     'root': {
         'level': 'DEBUG',
+        #'level': 'INFO',
         #'handlers': ['console'],
         'handlers': ['console', 'sentry'],
     },

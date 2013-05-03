@@ -191,6 +191,7 @@ prepare_message = PrepareMessage()
 
 #RELAY = None
 import gevent
+import gevent_profiler
 
 
 class SendMessage(Task):
@@ -287,6 +288,7 @@ class SendMessage(Task):
             elif testing == 'failure':
                 raise TestFailureError()
             else:
+                #gevent_profiler.attach(60)
                 ret = self.relay.attempt(envelope, attempts)
 
             # TODO Get real reply smtp_msg for success

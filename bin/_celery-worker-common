@@ -20,11 +20,12 @@ case "$SELF" in
     *sender*)
         QUEUES+=",emails,sms"
         LOG_LEVEL="DEBUG"
-        #HOSTNAME_SUFFIX="sender-${RANDOM::2}."
-        HOSTNAME_SUFFIX="sender."
-        #P="-P solo"
+        HOSTNAME_SUFFIX="sender-${RANDOM::2}."
+        #HOSTNAME_SUFFIX="sender."
+        CONCURRENCY=1
         P="-P gevent"
         #P="-P threads"
+        #P="-P solo"
         ;;&
     *main*)
         QUEUES+=",celery,campaigns"

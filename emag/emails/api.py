@@ -273,6 +273,19 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
         if user:
             return user.username
 
+    class Meta:
+        resource_name = 'email_campaign_status'
+        queryset = documents.EmailCampaign.objects.filter(
+            created__gte=timezone.now() - timedelta(days=30),
+        ).order_by('-created')
+        excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip')
+
+        allowed_methods = ['get']
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class EmailCampaignRecipientStatusResource(resources.MongoEngineResource):
     # GRR Invalid tag name on XML
     #failed_recipients = tfields.DictField(readonly=True)
     #
@@ -292,7 +305,7 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
                 if r.success is False]
 
     class Meta:
-        resource_name = 'email_campaign_status'
+        resource_name = 'email_campaign_recipient_status'
         queryset = documents.EmailCampaign.objects.filter(
             created__gte=timezone.now() - timedelta(days=30),
         ).order_by('-created')
