@@ -378,9 +378,9 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         if success_cnt:
             self.update(set__state__sent_success_count=success_cnt)
 
-        failure_cnt = ret.get(True)
+        failure_cnt = ret.get(False)
         if failure_cnt:
-            self.update(set__state__sent_failure_count=success_cnt)
+            self.update(set__state__sent_failure_count=failure_cnt)
 
         if self.is_completed and ret.get(None):
             logger.error('There are %d recipients with no success specified at all.', ret[None])
