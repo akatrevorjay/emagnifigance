@@ -19,9 +19,9 @@ case "$SELF" in
         ;;&
     *sender*)
         QUEUES+=",emails,sms"
-        LOG_LEVEL="DEBUG"
-        HOSTNAME_SUFFIX="sender-${RANDOM::2}."
-        #HOSTNAME_SUFFIX="sender."
+        #LOG_LEVEL="DEBUG"
+        #HOSTNAME_SUFFIX="sender-${RANDOM::2}."
+        HOSTNAME_SUFFIX="sender."
         CONCURRENCY=8
         P="-P gevent"
         #P="-P threads"
