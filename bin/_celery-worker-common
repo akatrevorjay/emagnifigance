@@ -22,7 +22,7 @@ case "$SELF" in
         LOG_LEVEL="DEBUG"
         HOSTNAME_SUFFIX="sender-${RANDOM::2}."
         #HOSTNAME_SUFFIX="sender."
-        CONCURRENCY=1
+        CONCURRENCY=8
         P="-P gevent"
         #P="-P threads"
         #P="-P solo"

@@ -287,16 +287,16 @@ class EmailCampaignStatusResource(resources.MongoEngineResource):
 
 class EmailCampaignRecipientStatusResource(resources.MongoEngineResource):
     # GRR Invalid tag name on XML
-    #failed_recipients = tfields.DictField(readonly=True)
+    #failed = tfields.DictField(readonly=True)
     #
-    #def dehydrate_failed_recipients(self, bundle):
+    #def dehydrate_failed(self, bundle):
     #    return dict([(r.split_envelope()[1], dict(success=r.success, log=r.log))
     #                 for r in bundle.obj.recipients
     #                 if r.success is False])
 
-    failed_recipients = tfields.ListField(readonly=True)
+    failed = tfields.ListField(readonly=True)
 
-    def dehydrate_failed_recipients(self, bundle):
+    def dehydrate_failed(self, bundle):
         # TODO Also show FBL hits
         #return [dict(email=r.email, log=[l._data for l in r.log if not l.success])
         #return [dict(email=r.email, log=r.log)
