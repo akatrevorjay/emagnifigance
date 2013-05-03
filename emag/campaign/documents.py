@@ -383,7 +383,7 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
             self.update(set__state__sent_failure_count=failure_cnt)
 
         if self.is_completed and ret.get(None):
-            logger.error('There are %d recipients with no success specified at all.', ret[None])
+            logger.error('There are %d recipients with no success specified at all in campaign %s pk=%s status=%s', ret[None], self, self.pk, self.status)
         #self.reload()
 
     def check_completed(self):
