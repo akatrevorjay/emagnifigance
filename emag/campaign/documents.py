@@ -382,8 +382,12 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         if failure_cnt:
             self.update(set__state__sent_failure_count=failure_cnt)
 
-        if self.is_completed and ret.get(None):
-            logger.error('There are %d recipients with no success specified at all in campaign %s pk=%s status=%s', ret[None], self, self.pk, self.status)
+        if ret.get(None):
+            if self.is_completed:
+                meth = logger.error
+            else:
+                meth = logger.warning
+            meth('There are %d recipients with no success specified at all in campaign %s pk=%s status=%s', ret[None], self, self.pk, self.status)
         #self.reload()
 
     def check_completed(self):
