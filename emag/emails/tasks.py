@@ -33,6 +33,13 @@ def check_for_completed():
         campaign.check_completed()
 
 
+@periodic_task(run_every=timedelta(minutes=10))
+def recheck_sent_counts_on_non_completed():
+    from .documents import EmailCampaign
+    for campaign in EmailCampaign.objects(state__completed__exists=False):
+        campaign.recheck_sent_counts()
+
+
 class PrepareMessage(Task):
     _policies = None
 
@@ -191,6 +198,7 @@ prepare_message = PrepareMessage()
 
 #RELAY = None
 import gevent
+from gevent import Timeout
 import gevent_profiler
 
 
@@ -295,7 +303,7 @@ class SendMessage(Task):
             r.append_log(success=True, smtp_msg='200 OK')
             campaign.incr_success_count()
 
-        except (SlimtaError, RecipientBlockedError, TestFailureError, Exception) as e:
+        except (SlimtaError, RecipientBlockedError, TestFailureError, Exception, Timeout) as e:
             error_code = None
             bounce = False
             retry = False
@@ -317,12 +325,16 @@ class SendMessage(Task):
 
             if error_code:
                 error_code_msg = 'error code %s' % error_code
-                r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='%s' % e.reply)
+                log_msg = '%s' % e.reply
+            elif isinstance(e, Timeout):
+                error_code_msg = 'timeout'
+                log_msg = '000 Timeout: %s' % e
             else:
                 error_code_msg = 'unknown error'
-                r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='000 Unknown error: %s' % e)
+                log_msg = '000 Unknown error: %s' % e
 
-            logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, e)
+            r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='%s' % log_msg)
+            logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, log_msg)
 
             if retry and attempts < 10:
                 # Retry this from another node

@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from itertools import izip
 from uuid import uuid4
+from collections import defaultdict
 
 from . import tasks
 
@@ -366,6 +367,24 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     @property
     def sent_total(self):
         return self.sent_success_count + self.sent_failure_count
+
+    def recheck_sent_counts(self):
+        #self.reload()
+        ret = defaultdict(int)
+        for r in self.recipients:
+            ret[r.success] += 1
+
+        success_cnt = ret.get(True)
+        if success_cnt:
+            self.update(set__state__sent_success_count=success_cnt)
+
+        failure_cnt = ret.get(True)
+        if failure_cnt:
+            self.update(set__state__sent_failure_count=success_cnt)
+
+        if self.is_completed and ret.get(None):
+            logger.error('There are %d recipients with no success specified at all.', ret[None])
+        #self.reload()
 
     def check_completed(self):
         if self.sent_total >= self.total:
