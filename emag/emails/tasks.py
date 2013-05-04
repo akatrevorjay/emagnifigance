@@ -255,7 +255,7 @@ class SendMessage(Task):
             try:
                 from slimta.relay.smtp.client import SmtpRelayClient
                 from slimta.core import SlimtaError
-                #from slimta.smtp import ConnectionLost, BadReply
+                from slimta.smtp import ConnectionLost, BadReply
                 from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
                 from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
                 #from slimta.relay.smtp.mx import NoDomainError
@@ -345,11 +345,17 @@ class SendMessage(Task):
                 log_msg = 'Blocked: %s' % e
                 blocked = True
             elif isinstance(e, TestFailureError):
-                error_code_msg = 'test_failure'
-                log_msg = 'Test Failure: %s' % e
+                error_code_msg = 'test failure'
+                log_msg = 'Test Failure'
+            elif isinstance(e, ConnectionLost):
+                error_code_msg = 'connection lost'
+                log_msg = 'Remote closed the connection early'
+            elif isinstance(e, BadReply):
+                error_code_msg = 'bad reply'
+                log_msg = 'Remote sent bad reply'
             else:
                 error_code_msg = 'unknown error'
-                log_msg = '000 Unknown error: %s' % e
+                log_msg = 'Unknown error: %s' % e
 
             logger.error('Got %s sending (bounce=%s, retry=%s, blocked=%s): %s', error_code_msg, bounce, retry, blocked, log_msg)
 

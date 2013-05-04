@@ -84,10 +84,8 @@ class BaseRecipientStatus(ReprMixIn, CreatedModifiedDocMixIn, m.Document):
 class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     meta = dict(abstract=True)
     context = m.DictField()
-    #log = m.ListField()
-    success = m.BooleanField()
-    blocked = m.BooleanField()
     log = m.ListField(m.ReferenceField(RecipientLogEntry, dbref=False))
+    success = m.BooleanField()
 
     def get_template_vars(self):
         ret = dict(
@@ -115,13 +113,12 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
 
             self_update_kwargs = {}
 
+            failed = kwargs.get('blocked') or kwargs.get('bounce')
             success = kwargs.get('success')
-            if success is not None:
-                self_update_kwargs['set__recipients__%d__success' % r_index] = success
-
-            blocked = kwargs.get('blocked')
-            if blocked is True:
-                self_update_kwargs['set__recipients__%d__blocked' % r_index] = blocked
+            if failed is True:
+                self_update_kwargs['set__recipients__%d__success' % r_index] = False
+            elif success is True:
+                self_update_kwargs['set__recipients__%d__success' % r_index] = True
 
             if self_update_kwargs:
                 self._instance.update(**self_update_kwargs)
