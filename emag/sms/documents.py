@@ -56,7 +56,7 @@ class SmsTemplate(cmodels.BaseTemplate):
         return ret
 
 
-from .tasks import prepare_message
+#from .tasks import prepare_message
 
 
 class SmsCampaign(cmodels.BaseCampaign):
@@ -65,12 +65,12 @@ class SmsCampaign(cmodels.BaseCampaign):
 
     campaign_type = 'sms'
 
-    _handler = prepare_message
+    #_handler = prepare_message
 
-    #@property
-    #def _handler(self):
-    #    from .tasks import prepare_message
-    #    return prepare_message
+    @property
+    def _handler(self):
+        from .tasks import prepare_message
+        return prepare_message
 
     #def __init__(self, *args, **kwargs):
     #    cmodels.BaseCampaign.__init__(self, *args, **kwargs)
