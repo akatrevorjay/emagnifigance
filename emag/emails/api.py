@@ -218,16 +218,31 @@ class EmailCampaignRecipientStatusResource(resources.MongoEngineResource):
         # TODO Also show FBL hits
         #return [dict(email=r.email, log=[l._data for l in r.log if not l.success])
         #return [dict(email=r.email, log=r.log)
-        return [dict(email=r.email)
-                for r in bundle.obj.recipients
-                if r.success is False]
+        ret = []
+        for r in bundle.obj.recipients:
+            if False not in [r.success, r.blocked]:
+                continue
+            rd = dict(email=r.email)
+            if r.log:
+                log = r.log[-1]
+                if log:
+                    for k in ['smtp_msg', 'fbl', 'bounce', 'blocked']:
+                        v = getattr(log, k, None)
+                        if v:
+                            rd[k] = v
+            ret.append(rd)
+        return ret
+
+        #return [dict(email=r.email)
+        #        for r in bundle.obj.recipients
+        #        if r.success is False]
 
     class Meta:
         resource_name = 'email_campaign_recipient_status'
         queryset = documents.EmailCampaign.objects.filter(
             created__gte=timezone.now() - timedelta(days=30),
         ).order_by('-created')
-        excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip')
+        excludes = ('slug', 'recipients', 'template', 'user_pk', 'user_ip', 'state')
 
         allowed_methods = ['get']
         authentication = ApiKeyAuthentication()

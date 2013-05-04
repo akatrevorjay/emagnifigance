@@ -30,14 +30,16 @@ from emag.campaign.tasks import handle_template, get_campaign
 def check_for_completed():
     from .documents import EmailCampaign
     for campaign in EmailCampaign.objects(state__completed__exists=False):
+        campaign.recheck_sent_counts()
+        campaign.reload()
         campaign.check_completed()
 
 
-@periodic_task(run_every=timedelta(minutes=10))
-def recheck_sent_counts_on_non_completed():
-    from .documents import EmailCampaign
-    for campaign in EmailCampaign.objects(state__completed__exists=False):
-        campaign.recheck_sent_counts()
+#@periodic_task(run_every=timedelta(minutes=10))
+#def recheck_sent_counts_on_non_completed():
+#    from .documents import EmailCampaign
+#    for campaign in EmailCampaign.objects(state__completed__exists=False):
+#        campaign.recheck_sent_counts()
 
 
 class PrepareMessage(Task):
@@ -208,15 +210,19 @@ class SendMessage(Task):
     @property
     def relay(self):
         count = 0
-        while count < 5:
+        #last_res = False
+        while count < 10:
             try:
                 from slimta.relay.smtp.client import SmtpRelayClient
                 from slimta.relay.smtp.mx import MxSmtpRelay
+                #last_res = True
                 break
             except ImportError as e:
-                logger.exception("ImportError: %s", e)
+                logger.error("ImportError: %s", e)
             count += 1
             gevent.sleep(1)
+        #if not last_res:
+        #    raise self.retry(countdown=5, exc=e)
 
         #global RELAY
         #if not RELAY:
@@ -244,7 +250,8 @@ class SendMessage(Task):
 
     def run(self, sender, recipient, subject, envelope, campaign_type, campaign_pk, r_index, testing):
         count = 0
-        while count < 5:
+        #last_res = False
+        while count < 10:
             try:
                 from slimta.relay.smtp.client import SmtpRelayClient
                 from slimta.core import SlimtaError
@@ -252,11 +259,14 @@ class SendMessage(Task):
                 from slimta.relay.smtp import SmtpRelayError, SmtpPermanentRelayError, SmtpTransientRelayError
                 from slimta.relay import RelayError, PermanentRelayError, TransientRelayError
                 #from slimta.relay.smtp.mx import NoDomainError
+                #last_res = True
                 break
             except ImportError as e:
-                logger.exception("ImportError: %s", e)
+                logger.error("ImportError: %s", e)
             count += 1
             gevent.sleep(1)
+        #if not last_res:
+        #    raise self.retry(countdown=5, exc=e)
 
         #recipient_address = r_vars['email_address']
         #sender_address = t_vars['sender_address']
@@ -333,8 +343,10 @@ class SendMessage(Task):
                 error_code_msg = 'unknown error'
                 log_msg = '000 Unknown error: %s' % e
 
-            r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='%s' % log_msg)
             logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, log_msg)
+
+            def _append_log():
+                r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='%s' % log_msg)
 
             if retry and attempts < 10:
                 # Retry this from another node
@@ -344,6 +356,7 @@ class SendMessage(Task):
                 countdown = step + (step * attempts)
                 # TODO record this message as the log in the recipient log
                 logger.warning('Retrying in %ds', countdown)
+                _append_log()
                 raise self.retry(countdown=countdown, exc=e)
             else:
                 if bounce:
@@ -357,6 +370,7 @@ class SendMessage(Task):
 
                 # Increase campaign fail count, as we're giving up
                 campaign.incr_failure_count()
+                _append_log()
                 gevent.sleep(0)
                 return False
                 #raise e

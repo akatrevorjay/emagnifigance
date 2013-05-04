@@ -74,6 +74,31 @@ class BaseRecipientStatus(ReprMixIn, CreatedModifiedDocMixIn, m.Document):
                 #campaign = kwargs.get('campaign')
                 #if campaign:
                 #    self.update(pull__user_status={campaign.user_pk: 'blocked'})
+        return entry_obj
+
+    @property
+    def latest_log(self):
+        if self.log:
+            return self.log[-1]
+
+    #def get_logs_for_campaign(self, campaign, recipient):
+    #    if campaign:
+    #        r_index = campaign.recipients.index(recipient)
+    #        kwargs = dict(campaign_pk=campaign.pk, r_index=r_index)
+    #        return RecipientLogEntry.objects.filter(**kwargs)
+
+    #def _get_logs_for_campaign_old(self, campaign):
+    #        for x in xrange(len(self.log)):
+    #            log = self.log[-x]
+    #            c_pk = getattr(log, 'campaign', None)
+    #            if c_pk is not None and c_pk == campaign.pk:
+    #                yield log
+
+    #def get_latest_log_for_campaign(self, *args, **kwargs):
+    #    try:
+    #        return self.get_logs_for_campaign(*args, **kwargs).next()
+    #    except StopIteration:
+    #        pass
 
 
 class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
@@ -81,6 +106,8 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     context = m.DictField()
     #log = m.ListField()
     success = m.BooleanField()
+    blocked = m.BooleanField()
+    log = m.ListField(m.ReferenceField(RecipientLogEntry, dbref=False))
 
     def get_template_vars(self):
         ret = dict(
@@ -89,18 +116,61 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
         return ret
 
     @property
-    def log(self):
-        return self.status.log
+    def latest_log(self):
+        if self.log:
+            return self.log[-1]
+
+    @property
+    def r_index(self):
+        return self._instance.recipients.index(self)
 
     def append_log(self, **kwargs):
+        r_index = self.r_index
+        if not r_index:
+            logger.exception('Appending log to %s without an r_index on %s: %s', self, self._instance, kwargs)
+            return
+
+        self_update_kwargs = {}
+
+        bounce = kwargs.get('bounce')
         success = kwargs.get('success')
-        if success in [True, False] and self.success != success:
+        if ((success is False and bounce) or (success is True) and self.success != success):
             #self._instance.__class__.objects(pk=self._instance.pk).filter(recipients___status=self.status).update(set__recipients__S__success=True)
-            index = self._instance.recipients.index(self)
-            self._instance.update(**{'set__recipients__%d__success' % index: success})
+            #self._instance.update(**{'set__recipients__%d__success' % r_index: success})
+            self_update_kwargs['set__recipients__%d__success' % r_index] = success
+
+        blocked = kwargs.get('blocked')
+        if blocked is True:
+            self_update_kwargs['set__recipients__%d__blocked' % r_index] = blocked
+
+        if self_update_kwargs:
+            self._instance.update(**self_update_kwargs)
 
         kwargs['campaign'] = self._instance.pk
-        self.status.append_log(**kwargs)
+        kwargs['r_index'] = r_index
+        kwargs.update(self._status_kwargs)
+        log = self.status.append_log(**kwargs)
+        self._instance.update(**{'push__recipients__%d__log' % r_index: log})
+
+    #def _fix_log_r_index(self):
+    #    #if not self.log:
+    #    #    return
+    #    r_index = self._instance.recipients.index(self)
+    #    self._instance.update(**{'unset__recipients__%d__log' % r_index: True})
+    #    if self._instance.name == 'TEst':
+    #        return
+    #    logs = list(self.status._get_logs_for_campaign_old(self._instance))
+    #    for log in logs:
+    #        if log.r_index:
+    #            continue
+    #        #RecipientLogEntry.objects(pk=log.pk).update(unset__r_index=True, unset__email_address=True)
+    #        update_kwargs = {'set__%s' % k: v for k, v in self._status_kwargs.items()}
+    #        update_kwargs['set__r_index'] = r_index
+    #        RecipientLogEntry.objects(pk=log.pk).update(**update_kwargs)
+    #        del log
+    #    if len(logs) < 30:
+    #        self._instance.update(**{'push_all__recipients__%d__log' % r_index: logs})
+    #    del logs
 
     """
     RecipientStatus
@@ -394,15 +464,17 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         for r in self.recipients:
             ret[r.success] += 1
 
-        success_cnt = ret.get(True)
-        if success_cnt:
+        success_cnt = ret.get(True, 0)
+        if success_cnt != self.sent_success_count:
+            logger.error('Counted %d successful recipients, but the campaign had %d in %s (pk=%s, status=%s)', success_cnt, self.sent_success_count, self, self.pk, self.status)
             self.update(set__state__sent_success_count=success_cnt)
 
-        failure_cnt = ret.get(False)
-        if failure_cnt:
+        failure_cnt = ret.get(False, 0)
+        if failure_cnt != self.sent_failure_count:
+            logger.error('Counted %d failed recipients, but the campaign had %d in %s (pk=%s, status=%s)', failure_cnt, self.sent_failure_count, self, self.pk, self.status)
             self.update(set__state__sent_failure_count=failure_cnt)
 
-        none_cnt = ret.get(None)
+        none_cnt = ret.get(None, 0)
         if none_cnt:
             if self.is_completed:
                 logger.error('There are %d recipients with no success specified at all in %s (pk=%s, status=%s)', none_cnt, self, self.pk, self.status)
