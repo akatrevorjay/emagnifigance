@@ -5,22 +5,7 @@ from mongoengine import signals
 import mongoengine as m
 import emag.campaign.documents as cmodels
 from django.template import Template
-import re
-
-
-class EnvelopeEmailField(m.StringField):
-    ENVELOPE_EMAIL_REGEX = re.compile(
-        #r'^"([-0-9A-Z ]+)" <'  # name
-        r'^"([^"]+)" <'  # name
-        r"([-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"  # dot-atom
-        r'|"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016-\177])*"'  # quoted-string
-        r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?>$', re.IGNORECASE  # domain
-    )
-
-    def validate(self, value):
-        if not EnvelopeEmailField.ENVELOPE_EMAIL_REGEX.match(value):
-            self.error('Invalid Envelope Mail-address: %s' % value)
-        super(EnvelopeEmailField, self).validate(value)
+from .fields import EnvelopeEmailField
 
 
 class EmailRecipientStatus(cmodels.BaseRecipientStatus):
@@ -59,15 +44,12 @@ class EmailRecipient(cmodels.BaseRecipient):
     RecipientStatus
     """
 
-    # What about lazy ref field?
+    # Lazy ref field returned by self.status
     _status = m.ReferenceField(EmailRecipientStatus, dbref=False)
 
     @property
-    def status(self):
-        if not self._status:
-            self._status, created = EmailRecipientStatus.objects.get_or_create(
-                email_address=self.email_address)
-        return self._status
+    def _status_kwargs(self):
+        return dict(email_address=self.email_address)
 
 
 class EmailTemplate(cmodels.BaseTemplate):
@@ -99,7 +81,7 @@ class EmailTemplate(cmodels.BaseTemplate):
         return (name, sender)
 
 
-import emag.emails.tasks as etasks
+#from .tasks import prepare_message
 
 
 class EmailCampaign(cmodels.BaseCampaign):
@@ -108,18 +90,19 @@ class EmailCampaign(cmodels.BaseCampaign):
 
     campaign_type = 'emails'
 
-    _handler = etasks.prepare_message
-    #_handler_cache = None
+    #_handler = prepare_message
 
-    #@property
-    #def _handler(self):
-    #    if not self._handler_cache:
-    #        self._handler_cache = etasks.PrepareMessage()
-    #    return self._handler_cache
+    @property
+    def _handler(self):
+        from .tasks import prepare_message
+        return prepare_message
 
     #def __init__(self, *args, **kwargs):
-    #    super(EmailCampaign, self).__init__(*args, **kwargs)
-    #    self._handler = etasks.PrepareMessage()
+    #    cmodels.BaseCampaign.__init__(self, *args, **kwargs)
+    #    #from .tasks import PrepareMessage
+    #    #self._handler = PrepareMessage()
+    #    from .tasks import prepare_message
+    #    self._handler = prepare_message
 
     @classmethod
     def post_save(cls, sender, document, **kwargs):

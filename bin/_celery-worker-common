@@ -14,7 +14,7 @@ case "$SELF" in
         ;;&
     *worker*)
         TYPE="worker"
-        CONCURRENCY=8
+        CONCURRENCY=32
         #P="-P gevent"
         ;;&
     *sender*)

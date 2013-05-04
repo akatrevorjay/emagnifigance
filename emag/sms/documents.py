@@ -4,35 +4,8 @@ logger = logging.getLogger(__name__)
 from mongoengine import signals
 import mongoengine as m
 import emag.campaign.documents as cmodels
-import re
-
-
-class PhoneNumberField(m.StringField):
-    REGEX = re.compile(r'^\+?(\d*)[- ]?(\d{3})[- ]?(\d{3})[- ]?(\d{4})$',
-                       re.IGNORECASE)
-
-    def validate(self, value):
-        if not PhoneNumberField.REGEX.match(value):
-            self.error('Invalid Phone Number: %s' % value)
-        super(PhoneNumberField, self).validate(value)
-
-    @classmethod
-    def clean(cls, phone):
-        phone = unicode(phone)
-        m = PhoneNumberField.REGEX.match(phone)
-        if not m:
-            raise ValueError("Phone number cannot be matched in: %s" % phone)
-        m = list(m.groups())
-        if not m[0]:
-            m[0] = '1'
-        return ''.join(m)
-
-    #def to_python(self, value):
-    #    return super(PhoneNumberField, self).to_python(value)
-
-    def to_mongo(self, value):
-        value = self.clean(value)
-        return super(PhoneNumberField, self).to_mongo(value)
+from .fields import PhoneNumberField
+from .models import SmsUserProfile
 
 
 class SmsRecipientStatus(cmodels.BaseRecipientStatus):
@@ -56,15 +29,12 @@ class SmsRecipient(cmodels.BaseRecipient):
     RecipientStatus
     """
 
-    # Lazy ref field
+    # Lazy ref field returned by self.status
     _status = m.ReferenceField(SmsRecipientStatus, dbref=False)
 
     @property
-    def status(self):
-        if not self._status:
-            self._status, created = SmsRecipientStatus.objects.get_or_create(
-                phone=self.phone)
-        return self._status
+    def _status_kwargs(self):
+        return dict(phone=self.phone)
 
 
 class SmsTemplate(cmodels.BaseTemplate):
@@ -86,8 +56,7 @@ class SmsTemplate(cmodels.BaseTemplate):
         return ret
 
 
-import emag.sms.tasks as stasks
-from .models import SmsUserProfile
+from .tasks import prepare_message
 
 
 class SmsCampaign(cmodels.BaseCampaign):
@@ -96,18 +65,19 @@ class SmsCampaign(cmodels.BaseCampaign):
 
     campaign_type = 'sms'
 
-    _handler = stasks.prepare_message
-    #_handler_cache = None
+    _handler = prepare_message
 
     #@property
     #def _handler(self):
-    #    if not self._handler_cache:
-    #        self._handler_cache = stasks.PrepareMessage()
-    #    return self._handler_cache
+    #    from .tasks import prepare_message
+    #    return prepare_message
 
     #def __init__(self, *args, **kwargs):
-    #    super(SmsCampaign, self).__init__(*args, **kwargs)
-    #    self._handler = stasks.PrepareMessage()
+    #    cmodels.BaseCampaign.__init__(self, *args, **kwargs)
+    #    #from .tasks import PrepareMessage
+    #    #self._handler = PrepareMessage()
+    #    from .tasks import prepare_message
+    #    self._handler = prepare_message
 
     def save(self, *args, **kwargs):
         template = getattr(self, 'template', None)

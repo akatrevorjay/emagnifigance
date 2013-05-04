@@ -106,6 +106,19 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
     RecipientStatus
     """
 
+    @property
+    def status(self):
+        if not self._status:
+            cls = self._fields['_status'].document_type_obj
+            self._status, created = cls.objects.get_or_create(**self._status_kwargs)
+            """ Above is deprecated, so below are my upsert attempts; I have an email out to the devs asking why it doesn't work as it's inefficient """
+            # Doesn't work as query params are not merged with update params
+            #self._status = cls.objects(**self._status_kwargs).update_one(upsert=True)
+            # Hack workaround
+            #update_kwargs = {'set__%s' % k: v for k, v in self._status_kwargs.iteritems()}
+            #self._status = cls.objects(**self._status_kwargs).update_one(upsert=True, **update_kwargs)
+        return self._status
+
     #def r_status(self):
     #    pass
 
@@ -351,9 +364,17 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     def sent_success_count(self):
         return self.state.get('sent_success_count', 0)
 
+    #@sent_success_count.setter
+    #def sent_success_count(self, value):
+    #    self.update(set__state__sent_success_count=value)
+
     @property
     def sent_failure_count(self):
         return self.state.get('sent_failure_count', 0)
+
+    #@sent_failure_count.setter
+    #def sent_failure_count(self, value):
+    #    self.update(set__state__sent_failure_count=value)
 
     @property
     def sent_per_max(self):
@@ -369,7 +390,6 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         return self.sent_success_count + self.sent_failure_count
 
     def recheck_sent_counts(self):
-        #self.reload()
         ret = defaultdict(int)
         for r in self.recipients:
             ret[r.success] += 1
@@ -382,13 +402,12 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
         if failure_cnt:
             self.update(set__state__sent_failure_count=failure_cnt)
 
-        if ret.get(None):
+        none_cnt = ret.get(None)
+        if none_cnt:
             if self.is_completed:
-                meth = logger.error
+                logger.error('There are %d recipients with no success specified at all in %s (pk=%s, status=%s)', none_cnt, self, self.pk, self.status)
             else:
-                meth = logger.warning
-            meth('There are %d recipients with no success specified at all in campaign %s pk=%s status=%s', ret[None], self, self.pk, self.status)
-        #self.reload()
+                logger.info('There are %d recipients that have not yet completed in %s (pk=%s, status=%s)', none_cnt, self, self.pk, self.status)
 
     def check_completed(self):
         if self.sent_total >= self.total:

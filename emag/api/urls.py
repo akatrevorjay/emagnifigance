@@ -2,8 +2,9 @@
 from django.conf.urls import patterns, url, include
 
 from tastypie.api import Api
+from emag.campaign.api import LogEntryResource, RecipientLogEntryResource
 from emag.emails.api import EmailCampaignResource, EmailCampaignStatusResource, EmailRecipientStatusResource, \
-    LogEntryResource, RecipientLogEntryResource, EmailCampaignRecipientStatusResource
+    EmailCampaignRecipientStatusResource
 from emag.sms.api import SmsCampaignResource, SmsCampaignStatusResource, SmsRecipientStatusResource
 
 v1_api = Api(api_name='v1')

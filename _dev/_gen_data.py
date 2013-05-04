@@ -18,10 +18,16 @@ u_jskeen = User.objects.get(username='jskeen')
 u_knr = User.objects.get(username='knr')
 
 
-def get_user_campaigns(username=None, user=None):
+def get_user_email_campaigns(username=None, user=None):
     if username:
         user = User.objects.get(username=username)
     return EmailCampaign.objects.filter(user_pk=user.pk).order_by('-created')
+
+
+def get_user_sms_campaigns(username=None, user=None):
+    if username:
+        user = User.objects.get(username=username)
+    return SmsCampaign.objects.filter(user_pk=user.pk).order_by('-created')
 
 
 def do_email():

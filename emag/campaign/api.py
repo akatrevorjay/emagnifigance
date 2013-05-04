@@ -1,11 +1,35 @@
-#from tastypie import cache
-#from tastypie.authentication import ApiKeyAuthentication
-#from tastypie.authorization import DjangoAuthorization
 
-#from tastypie_mongoengine import resources, fields
+#from tastypie import cache
+#from tastypie import fields as tfields
+from tastypie.authentication import ApiKeyAuthentication
+from tastypie_mongoengine import resources, fields
 #from tastypie.resources import ModelResource
-#from emag.emails.documents import Recipient, Template, Campaign
+#from tastypie.authorization import ReadOnlyAuthorization
+from emag.api.authorization import PerUserCreateReadAuthorization, PerUserReadOnlyAuthorization
 #from . import documents
+from .documents import LogEntry, RecipientLogEntry
+
+
+class LogEntryResource(resources.MongoEngineResource):
+    class Meta:
+        resource_name = 'log_entry'
+        queryset = LogEntry.objects.all()
+
+        allowed_methods = ['get']
+
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
+
+
+class RecipientLogEntryResource(LogEntryResource):
+    class Meta:
+        resource_name = 'recipient_log_entry'
+        queryset = RecipientLogEntry.objects.all()
+
+        allowed_methods = ['get']
+
+        authentication = ApiKeyAuthentication()
+        authorization = PerUserReadOnlyAuthorization()
 
 
 #class BaseRecipientResource(resources.MongoEngineResource):
@@ -30,7 +54,6 @@
 
 #        #authentication = ApiKeyAuthentication()
 #        #authorization = DjangoAuthorization()
-
 
 
 #class CampaignResource(ModelResource):

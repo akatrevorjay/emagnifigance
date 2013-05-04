@@ -1,10 +1,10 @@
 #from tastypie import cache
 from tastypie import fields as tfields
 from tastypie.authentication import ApiKeyAuthentication
-#from tastypie.authorization import DjangoAuthorization
-from tastypie.authorization import Authorization, ReadOnlyAuthorization, DjangoAuthorization, Unauthorized
 from tastypie_mongoengine import resources, fields
 #from tastypie.resources import ModelResource
+#from tastypie.authorization import ReadOnlyAuthorization
+from emag.api.authorization import PerUserCreateReadAuthorization, PerUserReadOnlyAuthorization
 #from emag.emails.documents import EmailRecipient, EmailTemplate, EmailCampaign
 from . import documents
 #from emag.campaign.api import RecipientResource, TemplateResource, CampaignResource
@@ -12,94 +12,12 @@ from . import documents
 from django.utils import timezone
 from datetime import timedelta
 
-
-"""
-Authorizations
-"""
-
-
-class PerUserAuthorizationMixIn:
-    def _per_user_check(self, object_list, bundle, is_list=False):
-        if not hasattr(bundle.request, 'user'):
-            raise Unauthorized("You are not allowed to access that resource.")
-        user = bundle.request.user
-
-        if not user.is_superuser:
-            object_list = object_list.filter(user_pk=user.pk)
-
-        if is_list:
-            return object_list
-        else:
-            if object_list:
-                return True
-            else:
-                raise Unauthorized("You are not allowed to access that resource.")
-
-    def read_list(self, object_list, bundle):
-        return self._per_user_check(object_list, bundle, is_list=True)
-
-    def read_detail(self, object_list, bundle):
-        return self._per_user_check(object_list, bundle)
-
-
-#class DisallowReadMixIn:
-#    def read_list(self, object_list, bundle):
-#        raise Unauthorized("You are not allowed to access that resource.")
-#
-#    def read_detail(self, object_list, bundle):
-#        raise Unauthorized("You are not allowed to access that resource.")
-#        #return False
-
-
-class DisallowUpdateMixIn:
-    def update_list(self, object_list, bundle):
-        return []
-
-    def update_detail(self, object_list, bundle):
-        raise Unauthorized("You are not allowed to access that resource.")
-
-
-class DisallowDeleteMixIn:
-    def delete_list(self, object_list, bundle):
-        return []
-
-    def delete_detail(self, object_list, bundle):
-        raise Unauthorized("You are not allowed to access that resource.")
-
-
-class PerUserCreateReadAuthorization(PerUserAuthorizationMixIn, DisallowUpdateMixIn, DisallowDeleteMixIn, Authorization):
-    pass
-
-
-class PerUserReadOnlyAuthorization(PerUserAuthorizationMixIn, ReadOnlyAuthorization):
-    pass
+#from emag.campaign.api import LogEntryResource, RecipientLogEntryResource
 
 
 """
 Resources
 """
-
-
-class LogEntryResource(resources.MongoEngineResource):
-    class Meta:
-        resource_name = 'log_entry'
-        queryset = documents.cmodels.LogEntry.objects.all()
-
-        allowed_methods = ['get']
-
-        authentication = ApiKeyAuthentication()
-        authorization = PerUserReadOnlyAuthorization()
-
-
-class RecipientLogEntryResource(LogEntryResource):
-    class Meta:
-        resource_name = 'recipient_log_entry'
-        queryset = documents.cmodels.RecipientLogEntry.objects.all()
-
-        allowed_methods = ['get']
-
-        authentication = ApiKeyAuthentication()
-        authorization = PerUserReadOnlyAuthorization()
 
 
 class EmailRecipientStatusResource(resources.MongoEngineResource):

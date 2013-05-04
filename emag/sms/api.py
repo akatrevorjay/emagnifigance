@@ -1,8 +1,7 @@
 #from tastypie import cache
 from tastypie import fields as tfields
 from tastypie.authentication import ApiKeyAuthentication
-#from tastypie.authorization import DjangoAuthorization
-from tastypie.authorization import Authorization, ReadOnlyAuthorization, DjangoAuthorization, Unauthorized
+from emag.api.authorization import PerUserCreateReadAuthorization, PerUserReadOnlyAuthorization
 from tastypie_mongoengine import resources, fields
 #from tastypie.resources import ModelResource
 #from emag.smss.documents import SmsRecipient, SmsTemplate, SmsCampaign
@@ -13,8 +12,7 @@ from emag.campaign.documents import RecipientLogEntry
 from django.utils import timezone
 from datetime import timedelta
 
-from emag.emails.api import PerUserAuthorizationMixIn, DisallowUpdateMixIn, DisallowDeleteMixIn, PerUserCreateReadAuthorization, PerUserReadOnlyAuthorization, \
-    LogEntryResource, RecipientLogEntryResource
+#from emag.campaign.api import LogEntryResource, RecipientLogEntryResource
 
 
 """
