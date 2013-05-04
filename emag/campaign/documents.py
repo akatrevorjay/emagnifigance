@@ -59,46 +59,26 @@ class BaseRecipientStatus(ReprMixIn, CreatedModifiedDocMixIn, m.Document):
         self.update(push__log=entry_obj)
 
         blocked = kwargs.get('blocked')
-        if blocked is not None:
-            if blocked:
-                logger.warning('Recipient "%s" is now blocked due to log: %s', self, kwargs)
-                self.update(set__status='blocked')
+        if blocked is True:
+            logger.warning('Recipient "%s" is now blocked due to log: %s', self, kwargs)
+            self.update(set__status='blocked')
 
-                #campaign = kwargs.get('campaign')
-                #if campaign:
-                #    self.update(push__user_status={campaign.user_pk: 'blocked'})
-            else:
-                logger.warning('Recipient "%s" is now unblocked due to log: %s', self, kwargs)
-                self.update(unset__status=True)
+            #campaign = kwargs.get('campaign')
+            #if campaign:
+            #    self.update(push__user_status={campaign.user_pk: 'blocked'})
+        elif blocked is False:
+            logger.warning('Recipient "%s" is now unblocked due to log: %s', self, kwargs)
+            self.update(unset__status=True)
 
-                #campaign = kwargs.get('campaign')
-                #if campaign:
-                #    self.update(pull__user_status={campaign.user_pk: 'blocked'})
+            #campaign = kwargs.get('campaign')
+            #if campaign:
+            #    self.update(pull__user_status={campaign.user_pk: 'blocked'})
         return entry_obj
 
     @property
     def latest_log(self):
         if self.log:
             return self.log[-1]
-
-    #def get_logs_for_campaign(self, campaign, recipient):
-    #    if campaign:
-    #        r_index = campaign.recipients.index(recipient)
-    #        kwargs = dict(campaign_pk=campaign.pk, r_index=r_index)
-    #        return RecipientLogEntry.objects.filter(**kwargs)
-
-    #def _get_logs_for_campaign_old(self, campaign):
-    #        for x in xrange(len(self.log)):
-    #            log = self.log[-x]
-    #            c_pk = getattr(log, 'campaign', None)
-    #            if c_pk is not None and c_pk == campaign.pk:
-    #                yield log
-
-    #def get_latest_log_for_campaign(self, *args, **kwargs):
-    #    try:
-    #        return self.get_logs_for_campaign(*args, **kwargs).next()
-    #    except StopIteration:
-    #        pass
 
 
 class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
@@ -126,51 +106,29 @@ class BaseRecipient(ReprMixIn, m.EmbeddedDocument):
 
     def append_log(self, **kwargs):
         r_index = self.r_index
-        if not r_index:
-            logger.exception('Appending log to %s without an r_index on %s: %s', self, self._instance, kwargs)
-            return
+        if r_index is None:
+            logger.error('Appending log to %s without an r_index on %s: %s', self, self._instance, kwargs)
 
-        self_update_kwargs = {}
+            kwargs.update(self._status_kwargs)
+        else:
+            kwargs['r_index'] = r_index
 
-        bounce = kwargs.get('bounce')
-        success = kwargs.get('success')
-        if ((success is False and bounce) or (success is True) and self.success != success):
-            #self._instance.__class__.objects(pk=self._instance.pk).filter(recipients___status=self.status).update(set__recipients__S__success=True)
-            #self._instance.update(**{'set__recipients__%d__success' % r_index: success})
-            self_update_kwargs['set__recipients__%d__success' % r_index] = success
+            self_update_kwargs = {}
 
-        blocked = kwargs.get('blocked')
-        if blocked is True:
-            self_update_kwargs['set__recipients__%d__blocked' % r_index] = blocked
+            success = kwargs.get('success')
+            if success is not None:
+                self_update_kwargs['set__recipients__%d__success' % r_index] = success
 
-        if self_update_kwargs:
-            self._instance.update(**self_update_kwargs)
+            blocked = kwargs.get('blocked')
+            if blocked is True:
+                self_update_kwargs['set__recipients__%d__blocked' % r_index] = blocked
+
+            if self_update_kwargs:
+                self._instance.update(**self_update_kwargs)
 
         kwargs['campaign'] = self._instance.pk
-        kwargs['r_index'] = r_index
-        kwargs.update(self._status_kwargs)
         log = self.status.append_log(**kwargs)
         self._instance.update(**{'push__recipients__%d__log' % r_index: log})
-
-    #def _fix_log_r_index(self):
-    #    #if not self.log:
-    #    #    return
-    #    r_index = self._instance.recipients.index(self)
-    #    self._instance.update(**{'unset__recipients__%d__log' % r_index: True})
-    #    if self._instance.name == 'TEst':
-    #        return
-    #    logs = list(self.status._get_logs_for_campaign_old(self._instance))
-    #    for log in logs:
-    #        if log.r_index:
-    #            continue
-    #        #RecipientLogEntry.objects(pk=log.pk).update(unset__r_index=True, unset__email_address=True)
-    #        update_kwargs = {'set__%s' % k: v for k, v in self._status_kwargs.items()}
-    #        update_kwargs['set__r_index'] = r_index
-    #        RecipientLogEntry.objects(pk=log.pk).update(**update_kwargs)
-    #        del log
-    #    if len(logs) < 30:
-    #        self._instance.update(**{'push_all__recipients__%d__log' % r_index: logs})
-    #    del logs
 
     """
     RecipientStatus
@@ -434,17 +392,9 @@ class BaseCampaign(CreatedModifiedDocMixIn, ReprMixIn, m.Document):
     def sent_success_count(self):
         return self.state.get('sent_success_count', 0)
 
-    #@sent_success_count.setter
-    #def sent_success_count(self, value):
-    #    self.update(set__state__sent_success_count=value)
-
     @property
     def sent_failure_count(self):
         return self.state.get('sent_failure_count', 0)
-
-    #@sent_failure_count.setter
-    #def sent_failure_count(self, value):
-    #    self.update(set__state__sent_failure_count=value)
 
     @property
     def sent_per_max(self):

@@ -220,16 +220,15 @@ class EmailCampaignRecipientStatusResource(resources.MongoEngineResource):
         #return [dict(email=r.email, log=r.log)
         ret = []
         for r in bundle.obj.recipients:
-            if False not in [r.success, r.blocked]:
+            if True not in [r.bounce, r.blocked]:
                 continue
             rd = dict(email=r.email)
-            if r.log:
-                log = r.log[-1]
-                if log:
-                    for k in ['smtp_msg', 'fbl', 'bounce', 'blocked']:
-                        v = getattr(log, k, None)
-                        if v:
-                            rd[k] = v
+            log = r.latest_log
+            if log:
+                for k in ['smtp_msg', 'fbl', 'bounce', 'blocked']:
+                    v = getattr(log, k, None)
+                    if v:
+                        rd[k] = v
             ret.append(rd)
         return ret
 

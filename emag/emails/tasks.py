@@ -317,6 +317,7 @@ class SendMessage(Task):
             error_code = None
             bounce = False
             retry = False
+            blocked = None
 
             # Get error number from attempt
             if isinstance(e, RelayError):
@@ -338,15 +339,22 @@ class SendMessage(Task):
                 log_msg = '%s' % e.reply
             elif isinstance(e, Timeout):
                 error_code_msg = 'timeout'
-                log_msg = '000 Timeout: %s' % e
+                log_msg = 'Timeout: %s' % e
+            elif isinstance(e, RecipientBlockedError):
+                error_code_msg = 'blocked'
+                log_msg = 'Blocked: %s' % e
+                blocked = True
+            elif isinstance(e, TestFailureError):
+                error_code_msg = 'test_failure'
+                log_msg = 'Test Failure: %s' % e
             else:
                 error_code_msg = 'unknown error'
                 log_msg = '000 Unknown error: %s' % e
 
-            logger.error('Got %s sending (bounce=%s, retry=%s): %s', error_code_msg, bounce, retry, log_msg)
+            logger.error('Got %s sending (bounce=%s, retry=%s, blocked=%s): %s', error_code_msg, bounce, retry, blocked, log_msg)
 
             def _append_log():
-                r.append_log(success=False, bounce=bounce, retry=retry, smtp_msg='%s' % log_msg)
+                r.append_log(success=False, bounce=bounce, retry=retry, blocked=blocked, smtp_msg='%s' % log_msg)
 
             if retry and attempts < 10:
                 # Retry this from another node
