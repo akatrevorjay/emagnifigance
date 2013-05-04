@@ -326,6 +326,7 @@ class SendMessage(Task):
                 # If e is 4xx, retry, if error is 5xx, do not retry,
                 # bounce recipient
                 if isinstance(e, PermanentRelayError):
+                    blocked = True
                     bounce = True
                 else:
                     retry = True
