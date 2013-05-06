@@ -340,10 +340,10 @@ class SendMessage(Task):
                 log_msg = '%s' % e.reply
             elif isinstance(e, Timeout):
                 error_code_msg = 'timeout'
-                log_msg = 'Timeout: %s' % e
+                log_msg = 'Timeout'
             elif isinstance(e, RecipientBlockedError):
                 error_code_msg = 'blocked'
-                log_msg = 'Blocked: %s' % e
+                log_msg = 'Blocked'
                 blocked = True
             elif isinstance(e, TestFailureError):
                 error_code_msg = 'test failure'
