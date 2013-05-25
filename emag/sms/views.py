@@ -43,7 +43,8 @@ args=() kwargs={'r_index': u'0', 'campaign_pk': u'51772cfde28a8f3794ad71c6'}
 }>
 """
 
-from emag.campaign.tasks import get_campaign
+
+from emag.sms.tasks import handle_twilio_status
 
 
 @twilio_view
@@ -56,15 +57,8 @@ def twilio_status(request, **kwargs):
     status = request.POST['SmsStatus']
     success = status == 'sent'
 
-    campaign = get_campaign(campaign_type, campaign_pk)
-    r = campaign.recipients[r_index]
-
-    r.append_log(success=success, sid=sid, msg=status)
-
-    if success:
-        campaign.incr_success_count()
-    else:
-        campaign.incr_failure_count()
+    # Queue this up so we return quickly
+    handle_twilio_status.delay(campaign_pk, campaign_type, r_index, success, sid, status)
 
     r = Response()
     return r
@@ -90,4 +84,10 @@ def process(request, *args, **kwargs):
     print 'args=%s kwargs=%s' % (args, kwargs)
     print request.GET
     print
+    return HttpResponse()
+
+
+@csrf_exempt
+@require_POST
+def null(request, *args, **kwargs):
     return HttpResponse()

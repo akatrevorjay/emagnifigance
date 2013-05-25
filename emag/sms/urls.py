@@ -11,6 +11,11 @@ urlpatterns = patterns(
     #url(r'^twilio/incoming/$', 'emag.sms.views.twilio_process'),
     #url(r'^twilio/status/$', 'emag.sms.views.twilio_process'),
 
+    url(r'^twilio/incoming/$', 'emag.sms.views.null'),
+    url(r'^twilio/status/$', 'emag.sms.views.null'),
+    url(r'^twilio/incoming_fallback/$', 'emag.sms.views.null'),
+    url(r'^twilio/status_fallback/$', 'emag.sms.views.null'),
+
     url(r'^twilio/incoming/(?P<campaign_pk>[a-f\d]{8,64})-(?P<r_index>\d{1,8})/$',
         'emag.sms.views.twilio_process'),
 

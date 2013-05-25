@@ -512,7 +512,7 @@ CELERY_ROUTES = {
 
     'emag.sms.tasks.PrepareMessage': {'queue': 'sms'},
     'emag.sms.tasks.SendMessage': {'queue': 'sms'},
-
+    'emag.sms.tasks.handle_twilio_status': {'queue': 'sms'},
 }
 
 #CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}

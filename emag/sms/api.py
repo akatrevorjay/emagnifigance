@@ -242,7 +242,8 @@ class SmsCampaignStatusResource(resources.MongoEngineResource):
     #failed_recipients = tfields.DictField(readonly=True)
 
     def dehydrate_failed_recipients(self, bundle):
-        return [dict(phone=r.phone) for r in bundle.obj.failed_recipients]
+        #return [dict(phone=r.phone) for r in bundle.obj.failed_recipients]
+        return []
 
     class Meta:
         resource_name = 'sms_campaign_status'

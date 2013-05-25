@@ -1,5 +1,5 @@
 
-from celery import Task
+from celery import Task, task
 from celery.task import periodic_task
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
@@ -33,6 +33,19 @@ def chunks(s, n):
     """Produce `n`-character chunks from `s`."""
     for start in range(0, len(s), n):
         yield s[start:start + n]
+
+
+@task
+def handle_twilio_status(campaign_pk, campaign_type, r_index, success, sid, status):
+    campaign = get_campaign(campaign_type, campaign_pk)
+    r = campaign.recipients[r_index]
+
+    r.append_log(success=success, sid=sid, msg=status)
+
+    if success:
+        campaign.incr_success_count()
+    else:
+        campaign.incr_failure_count()
 
 
 class PrepareMessage(Task):
