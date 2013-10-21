@@ -16,6 +16,7 @@ TEST_RECIPIENT_COUNT = 1
 u_trevorj = User.objects.get(username='trevorj')
 u_jskeen = User.objects.get(username='jskeen')
 u_knr = User.objects.get(username='knr')
+u_ksu = User.objects.get(username='ksu')
 
 
 def get_user_email_campaigns(username=None, user=None):
